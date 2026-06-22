@@ -101,6 +101,59 @@ const STYLE_OPTIONS = [
   { id: "dramatic", label: "戏剧起伏", desc: "时而私语，时而勃发，强烈艺术张力" },
 ];
 
+// Helper to merge multiple 24000Hz mono 16-bit PCM WAV blobs
+async function mergeWavBlobs(blobUrls: string[]): Promise<Blob> {
+  const arrays: Uint8Array[] = [];
+  let totalPcmLength = 0;
+  
+  for (const url of blobUrls) {
+    const res = await fetch(url);
+    const buffer = await res.arrayBuffer();
+    // WAV header is 44 bytes. Get PCM payload.
+    const pcm = new Uint8Array(buffer, 44);
+    arrays.push(pcm);
+    totalPcmLength += pcm.byteLength;
+  }
+  
+  const mergedBuffer = new Uint8Array(44 + totalPcmLength);
+  const view = new DataView(mergedBuffer.buffer);
+  
+  // RIFF identifier
+  view.setUint32(0, 0x52494646, false); // "RIFF"
+  // File length: 36 + data size
+  view.setUint32(4, 36 + totalPcmLength, true);
+  // RIFF type
+  view.setUint32(8, 0x57415645, false); // "WAVE"
+  // Format chunk identifier
+  view.setUint32(12, 0x666d7420, false); // "fmt "
+  // Format chunk length
+  view.setUint32(16, 16, true);
+  // Sample format: 1 (PCM)
+  view.setUint16(20, 1, true);
+  // Channel count: 1 (mono)
+  view.setUint16(22, 1, true);
+  // Sample rate (24000)
+  view.setUint32(24, 24000, true);
+  // Byte rate: 24000 * 2 = 48000
+  view.setUint32(28, 48000, true);
+  // Block align: 2
+  view.setUint16(32, 2, true);
+  // Bits per sample: 16-bit
+  view.setUint16(34, 16, true);
+  // Data chunk identifier
+  view.setUint32(36, 0x64617461, false); // "data"
+  // Data chunk length
+  view.setUint32(40, totalPcmLength, true);
+  
+  let offset = 44;
+  for (const pcm of arrays) {
+    mergedBuffer.set(pcm, offset);
+    offset += pcm.byteLength;
+  }
+  
+  return new Blob([mergedBuffer], { type: "audio/wav" });
+}
+
 const SPEED_OPTIONS = [
   { id: "slow", label: "慢速 0.8x (意境深远)", directive: "字留余白，韵律舒缓" },
   { id: "medium", label: "标准 1.0x (经典传承)", directive: "吞吐有度，气韵生动" },
@@ -125,6 +178,7 @@ export default function App() {
   const [playableChunks, setPlayableChunks] = useState<PlayableChunk[]>([]);
   const [currentChunkIdx, setCurrentChunkIdx] = useState<number>(0);
   const [isForgingAll, setIsForgingAll] = useState<boolean>(false);
+  const [isMerging, setIsMerging] = useState<boolean>(false);
   const [autoPlayNext, setAutoPlayNext] = useState<boolean>(true);
 
   // References for live callback references to prevent audio recreation loops
@@ -515,6 +569,56 @@ export default function App() {
     }
   };
 
+  // Merge and download all generated scrolls into one complete WAV file
+  const mergeAndDownloadAllScrolls = async () => {
+    setIsMerging(true);
+    try {
+      const urls = playableChunks.map(c => c.audioUrl).filter(Boolean) as string[];
+      if (urls.length === 0) return;
+      
+      const mergedBlob = await mergeWavBlobs(urls);
+      const audioUrlObj = URL.createObjectURL(mergedBlob);
+      
+      // Calculate total duration
+      const totalDuration = playableChunks.reduce((acc, c) => acc + (c.duration || 0), 0);
+      
+      // Create a GenerationHistory item to represent the merged audio
+      const mergedItem: GenerationHistory = {
+        id: `merged-${Date.now()}`,
+        timestamp: new Date(),
+        text: `【全篇合集】${text.slice(0, 30)}...`,
+        voice: selectedVoice,
+        style: selectedStyle,
+        speed: selectedSpeed,
+        audioUrl: audioUrlObj,
+        duration: totalDuration,
+        textLength: text.length
+      };
+      
+      // Load into player & start playing!
+      setCurrentAudio(mergedItem);
+      setIsPlaying(true);
+      
+      // Trigger file download automatically
+      const a = document.createElement("a");
+      a.href = audioUrlObj;
+      const voiceObj = AVAILABLE_VOICES.find(v => v.id === selectedVoice);
+      const voiceName = voiceObj ? voiceObj.name.split(" ")[0] : selectedVoice;
+      const styleObj = STYLE_OPTIONS.find(s => s.id === selectedStyle);
+      const styleName = styleObj ? styleObj.label : selectedStyle;
+      a.download = `EchoMuse_FullMerged_${voiceName}_${styleName}_${Date.now().toString().slice(-6)}.wav`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+    } catch (err) {
+      console.error("Error merging audio chunks:", err);
+      alert("合并分卷失败，请重试。");
+    } finally {
+      setIsMerging(false);
+    }
+  };
+
   // Generate Recitation function
   const handleGenerateRecitation = async () => {
     if (!text || text.trim() === "") {
@@ -884,13 +988,26 @@ export default function App() {
                       停止连载合成
                     </button>
                   ) : (
-                    <button
-                      onClick={forgeAllScrollsSequential}
-                      className="px-3 py-1.5 bg-[#c5a059]/10 hover:bg-[#c5a059]/20 text-[#c5a059] border border-[#c5a059]/30 text-[10px] uppercase tracking-wider font-bold rounded-xs cursor-pointer transition-colors flex items-center gap-1.5"
-                    >
-                      <Sparkles className="w-3 h-3 fill-current" />
-                      一键炼制全篇 ({playableChunks.filter(c => c.status !== 'ready').length}段待处理)
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={forgeAllScrollsSequential}
+                        className="px-3 py-1.5 bg-[#c5a059]/10 hover:bg-[#c5a059]/20 text-[#c5a059] border border-[#c5a059]/30 text-[10px] uppercase tracking-wider font-bold rounded-xs cursor-pointer transition-colors flex items-center gap-1.5"
+                      >
+                        <Sparkles className="w-3 h-3 fill-current" />
+                        一键炼制全篇 ({playableChunks.filter(c => c.status !== 'ready').length}段待处理)
+                      </button>
+                      
+                      {playableChunks.length > 0 && playableChunks.every(c => c.status === 'ready') && (
+                        <button
+                          onClick={mergeAndDownloadAllScrolls}
+                          disabled={isMerging}
+                          className="px-3 py-1.5 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-500/30 text-[10px] uppercase tracking-wider font-bold rounded-xs cursor-pointer transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <Download className="w-3 h-3" />
+                          {isMerging ? "正在合并..." : "自动合并所有分卷"}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
