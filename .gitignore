@@ -7,3 +7,6 @@ coverage/
 .env*
 !.env.example
 .agents
+.pyc
+var
+__pycache__

@@ -30,6 +30,10 @@ interface GenerationHistory {
   audioUrl: string;
   duration: number;
   textLength: number;
+  elapsedTimeMs?: number;
+  promptTokens?: number;
+  candidatesTokens?: number;
+  totalTokens?: number;
 }
 
 interface PlayableChunk {
@@ -167,7 +171,7 @@ export default function App() {
   // Fake visualizer bar heights state to pulse when playing
   const [barHeights, setBarHeights] = useState<number[]>([15, 30, 45, 60, 40, 50, 35, 70, 25, 42, 55, 30]);
 
-  // Read environment health on mount
+  // Read environment health and load database history on mount
   useEffect(() => {
     fetch("/api/health")
       .then((res) => res.json())
@@ -178,6 +182,43 @@ export default function App() {
       })
       .catch((err) => {
         console.error("Health check error", err);
+      });
+
+    fetch("/api/history")
+      .then((res) => res.json())
+      .then((data: any[]) => {
+        if (Array.isArray(data)) {
+          const loadedHistory = data.map((item) => {
+            const binaryStr = atob(item.audioData);
+            const len = binaryStr.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+              bytes[i] = binaryStr.charCodeAt(i);
+            }
+            const audioBlob = new Blob([bytes], { type: "audio/wav" });
+            const audioUrlObj = URL.createObjectURL(audioBlob);
+
+            return {
+              id: item.id,
+              timestamp: new Date(item.timestamp),
+              text: item.text,
+              voice: item.voice,
+              style: item.style,
+              speed: item.speed,
+              audioUrl: audioUrlObj,
+              duration: item.duration,
+              textLength: item.textLength,
+              elapsedTimeMs: item.elapsedTimeMs,
+              promptTokens: item.promptTokens,
+              candidatesTokens: item.candidatesTokens,
+              totalTokens: item.totalTokens
+            };
+          });
+          setHistory(loadedHistory);
+        }
+      })
+      .catch((err) => {
+        console.error("Error loading history list:", err);
       });
   }, []);
 
@@ -385,7 +426,7 @@ export default function App() {
 
       // Create a GenerationHistory item to add to session history log
       const histItem: GenerationHistory = {
-        id: targetChunk.id,
+        id: data.id || targetChunk.id,
         timestamp: new Date(),
         text: targetChunk.text,
         voice: selectedVoice,
@@ -393,7 +434,11 @@ export default function App() {
         speed: selectedSpeed,
         audioUrl: audioUrlObj,
         duration: data.duration || 6,
-        textLength: targetChunk.text.length
+        textLength: targetChunk.text.length,
+        elapsedTimeMs: data.elapsedTimeMs,
+        promptTokens: data.promptTokens,
+        candidatesTokens: data.candidatesTokens,
+        totalTokens: data.totalTokens
       };
 
       // Add to local historical records
@@ -526,7 +571,7 @@ export default function App() {
       const audioUrlObj = URL.createObjectURL(audioBlob);
 
       const generatedItem: GenerationHistory = {
-        id: `gen-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        id: data.id || `gen-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         timestamp: new Date(),
         text: text,
         voice: selectedVoice,
@@ -534,7 +579,11 @@ export default function App() {
         speed: selectedSpeed,
         audioUrl: audioUrlObj,
         duration: data.duration || 6,
-        textLength: text.length
+        textLength: text.length,
+        elapsedTimeMs: data.elapsedTimeMs,
+        promptTokens: data.promptTokens,
+        candidatesTokens: data.candidatesTokens,
+        totalTokens: data.totalTokens
       };
 
       setHistory(prev => [generatedItem, ...prev]);
@@ -1207,29 +1256,39 @@ export default function App() {
                   </p>
                 </div>
 
-                <div className="flex justify-between items-center border-t border-white/5 pt-2.5 mt-1">
-                  <span className="text-[10px] text-gray-500 font-mono">
-                    时长: {formatTime(item.duration)} • 字数: {item.textLength}
-                  </span>
-                  
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => {
-                        setCurrentAudio(item);
-                        setIsPlaying(true);
-                      }}
-                      className="px-2.5 py-1 bg-[#121212] hover:bg-[#c5a059] hover:text-black transition-all border border-white/5 text-[10px] uppercase font-bold tracking-wider cursor-pointer"
-                    >
-                      点击播放
-                    </button>
-                    <button 
-                      onClick={() => handleDownload(item)}
-                      className="p-1 px-2 border border-white/10 hover:border-[#c5a059] text-gray-400 hover:text-white cursor-pointer"
-                      title="导出 WAV 音频"
-                    >
-                      <Download className="w-3 h-3" />
-                    </button>
+                <div className="flex flex-col gap-1.5 border-t border-white/5 pt-2.5 mt-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-gray-500 font-mono">
+                      时长: {formatTime(item.duration)} • 字数: {item.textLength}
+                    </span>
+                    
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => {
+                          setCurrentAudio(item);
+                          setIsPlaying(true);
+                        }}
+                        className="px-2.5 py-1 bg-[#121212] hover:bg-[#c5a059] hover:text-black transition-all border border-white/5 text-[10px] uppercase font-bold tracking-wider cursor-pointer"
+                      >
+                        点击播放
+                      </button>
+                      <button 
+                        onClick={() => handleDownload(item)}
+                        className="p-1 px-2 border border-white/10 hover:border-[#c5a059] text-gray-400 hover:text-white cursor-pointer"
+                        title="导出 WAV 音频"
+                      >
+                        <Download className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
+                  {item.elapsedTimeMs !== undefined && (
+                    <div className="text-[9px] text-stone-500 font-mono flex flex-wrap gap-x-2 border-t border-white/5 pt-1.5 mt-0.5">
+                      <span>用时: {item.elapsedTimeMs}ms</span>
+                      {item.totalTokens ? (
+                        <span>• Token 消耗: {item.totalTokens} (输入: {item.promptTokens} / 输出: {item.candidatesTokens})</span>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
