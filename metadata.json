@@ -1,0 +1,6 @@
+{
+  "name": "Gemini Reciter",
+  "description": "利用 Gemini 3.1 TTS 技术将文本、诗歌、散文转换为富有情感表现力的朗诵音频，支持多种经典角调、情感语气自定义及播放下载。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

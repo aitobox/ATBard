@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Noto Serif SC", system-ui, sans-serif;
+  --font-serif: "Noto Serif SC", "Playfair Display", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    background-color: #fcfbfa; /* Soft off-white paper color */
+    color: #1c1a17; /* Deep charcoal/ink color */
+    font-family: var(--font-sans);
+  }
+}
+
+/* Custom ink scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1ebd900;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4cfc1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa495;
+}
+
+/* Elegant wave animation */
+@keyframes wave-flow {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+.playing-wave-item {
+  animation: wave-flow 1.2s ease-in-out infinite;
+}
+
