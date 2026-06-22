@@ -95,6 +95,8 @@ def recite_view(request):
         voice = body.get("voice", "Kore")
         style = body.get("style", "default")
         speed = body.get("speed", "medium")
+        session_id = body.get("session_id")
+        chunk_index = body.get("chunk_index", -1)
 
         if not text or not isinstance(text, str) or text.strip() == '':
             return JsonResponse({"error": "请输入需要朗诵的文本内容。"}, status=400)
@@ -267,7 +269,9 @@ def recite_view(request):
             elapsed_time_ms=elapsed_time_ms,
             prompt_tokens=prompt_tokens,
             candidates_tokens=candidates_tokens,
-            total_tokens=total_tokens
+            total_tokens=total_tokens,
+            session_id=session_id,
+            chunk_index=chunk_index
         )
 
         return JsonResponse({
@@ -280,7 +284,9 @@ def recite_view(request):
             "elapsedTimeMs": elapsed_time_ms,
             "promptTokens": prompt_tokens,
             "candidatesTokens": candidates_tokens,
-            "totalTokens": total_tokens
+            "totalTokens": total_tokens,
+            "session_id": record.session_id,
+            "chunk_index": record.chunk_index
         })
 
     except Exception as e:
@@ -310,7 +316,9 @@ def history_view(request):
                 "elapsedTimeMs": r.elapsed_time_ms,
                 "promptTokens": r.prompt_tokens,
                 "candidatesTokens": r.candidates_tokens,
-                "totalTokens": r.total_tokens
+                "totalTokens": r.total_tokens,
+                "session_id": r.session_id,
+                "chunk_index": r.chunk_index
             })
         return JsonResponse(data, safe=False)
     except Exception as e:

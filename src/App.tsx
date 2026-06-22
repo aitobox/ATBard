@@ -34,6 +34,25 @@ interface GenerationHistory {
   promptTokens?: number;
   candidatesTokens?: number;
   totalTokens?: number;
+  sessionId?: string;
+  chunkIndex?: number;
+}
+
+interface HistorySession {
+  id: string;
+  isGroup: boolean;
+  timestamp: Date;
+  voice: string;
+  style: string;
+  speed: string;
+  text: string;
+  textLength: number;
+  duration: number;
+  elapsedTimeMs?: number;
+  promptTokens?: number;
+  candidatesTokens?: number;
+  totalTokens?: number;
+  chunks: GenerationHistory[];
 }
 
 interface PlayableChunk {
@@ -154,6 +173,68 @@ async function mergeWavBlobs(blobUrls: string[]): Promise<Blob> {
   return new Blob([mergedBuffer], { type: "audio/wav" });
 }
 
+const groupHistory = (items: GenerationHistory[]): HistorySession[] => {
+  const groups: { [key: string]: GenerationHistory[] } = {};
+  const standalone: HistorySession[] = [];
+  
+  for (const item of items) {
+    if (item.sessionId) {
+      if (!groups[item.sessionId]) {
+        groups[item.sessionId] = [];
+      }
+      groups[item.sessionId].push(item);
+    } else {
+      standalone.push({
+        id: item.id,
+        isGroup: false,
+        timestamp: item.timestamp,
+        voice: item.voice,
+        style: item.style,
+        speed: item.speed,
+        text: item.text,
+        textLength: item.textLength,
+        duration: item.duration,
+        elapsedTimeMs: item.elapsedTimeMs,
+        promptTokens: item.promptTokens,
+        candidatesTokens: item.candidatesTokens,
+        totalTokens: item.totalTokens,
+        chunks: [item]
+      });
+    }
+  }
+  
+  const mergedGroups = Object.keys(groups).map(sessId => {
+    const chunks = groups[sessId].sort((a, b) => (a.chunkIndex ?? 0) - (b.chunkIndex ?? 0));
+    const firstChunk = chunks[0];
+    
+    const totalTextLength = chunks.reduce((acc, c) => acc + c.textLength, 0);
+    const totalDuration = chunks.reduce((acc, c) => acc + c.duration, 0);
+    const totalElapsed = chunks.reduce((acc, c) => acc + (c.elapsedTimeMs || 0), 0);
+    const totalPrompt = chunks.reduce((acc, c) => acc + (c.promptTokens || 0), 0);
+    const totalCand = chunks.reduce((acc, c) => acc + (c.candidatesTokens || 0), 0);
+    const totalTok = chunks.reduce((acc, c) => acc + (c.totalTokens || 0), 0);
+    
+    return {
+      id: sessId,
+      isGroup: true,
+      timestamp: firstChunk.timestamp,
+      voice: firstChunk.voice,
+      style: firstChunk.style,
+      speed: firstChunk.speed,
+      text: chunks.map(c => c.text).join("\n"),
+      textLength: totalTextLength,
+      duration: totalDuration,
+      elapsedTimeMs: totalElapsed,
+      promptTokens: totalPrompt,
+      candidatesTokens: totalCand,
+      totalTokens: totalTok,
+      chunks: chunks
+    };
+  });
+  
+  return [...standalone, ...mergedGroups].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+};
+
 const SPEED_OPTIONS = [
   { id: "slow", label: "慢速 0.8x (意境深远)", directive: "字留余白，韵律舒缓" },
   { id: "medium", label: "标准 1.0x (经典传承)", directive: "吞吐有度，气韵生动" },
@@ -179,6 +260,9 @@ export default function App() {
   const [currentChunkIdx, setCurrentChunkIdx] = useState<number>(0);
   const [isForgingAll, setIsForgingAll] = useState<boolean>(false);
   const [isMerging, setIsMerging] = useState<boolean>(false);
+  const [longSessionId, setLongSessionId] = useState<string>("");
+  const [expandedSessions, setExpandedSessions] = useState<{ [key: string]: boolean }>({});
+  const [isHistoryMerging, setIsHistoryMerging] = useState<{ [key: string]: boolean }>({});
   const [autoPlayNext, setAutoPlayNext] = useState<boolean>(true);
 
   // References for live callback references to prevent audio recreation loops
@@ -265,7 +349,9 @@ export default function App() {
               elapsedTimeMs: item.elapsedTimeMs,
               promptTokens: item.promptTokens,
               candidatesTokens: item.candidatesTokens,
-              totalTokens: item.totalTokens
+              totalTokens: item.totalTokens,
+              sessionId: item.sessionId,
+              chunkIndex: item.chunkIndex
             };
           });
           setHistory(loadedHistory);
@@ -414,6 +500,7 @@ export default function App() {
     // If text enters a longer threshold, enable long book scroll mode
     if (text.length > 500) {
       setIsLongModeActive(true);
+      setLongSessionId(prev => prev || `sess-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
       const parted = splitTextIntoChunks(text, 400);
       setPlayableChunks((prev) => {
         // reuse any already processed chunks where the text hasn't mutated
@@ -432,6 +519,7 @@ export default function App() {
       });
     } else {
       setIsLongModeActive(false);
+      setLongSessionId("");
     }
   }, [text]);
 
@@ -454,6 +542,8 @@ export default function App() {
           voice: selectedVoice,
           style: selectedStyle,
           speed: selectedSpeed,
+          session_id: longSessionId,
+          chunk_index: index
         }),
       });
 
@@ -492,7 +582,9 @@ export default function App() {
         elapsedTimeMs: data.elapsedTimeMs,
         promptTokens: data.promptTokens,
         candidatesTokens: data.candidatesTokens,
-        totalTokens: data.totalTokens
+        totalTokens: data.totalTokens,
+        sessionId: data.session_id,
+        chunkIndex: data.chunk_index
       };
 
       // Add to local historical records
@@ -619,6 +711,55 @@ export default function App() {
     }
   };
 
+  const mergeAndDownloadHistorySession = async (session: HistorySession) => {
+    setIsHistoryMerging(prev => ({ ...prev, [session.id]: true }));
+    try {
+      const urls = session.chunks.map(c => c.audioUrl).filter(Boolean) as string[];
+      if (urls.length === 0) return;
+      
+      const mergedBlob = await mergeWavBlobs(urls);
+      const audioUrlObj = URL.createObjectURL(mergedBlob);
+      
+      const playItem: GenerationHistory = {
+        id: session.id,
+        timestamp: session.timestamp,
+        text: `【全篇合集】${session.text.slice(0, 35)}...`,
+        voice: session.voice,
+        style: session.style,
+        speed: session.speed,
+        audioUrl: audioUrlObj,
+        duration: session.duration,
+        textLength: session.textLength
+      };
+      setCurrentAudio(playItem);
+      setIsPlaying(true);
+      
+      const a = document.createElement("a");
+      a.href = audioUrlObj;
+      const voiceObj = AVAILABLE_VOICES.find(v => v.id === session.voice);
+      const voiceName = voiceObj ? voiceObj.name.split(" ")[0] : session.voice;
+      const styleObj = STYLE_OPTIONS.find(s => s.id === session.style);
+      const styleName = styleObj ? styleObj.label : session.style;
+      a.download = `EchoMuse_FullMerged_${voiceName}_${styleName}_${Date.now().toString().slice(-6)}.wav`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+    } catch (err) {
+      console.error("History merge error:", err);
+      alert("合成分卷失败，请重试。");
+    } finally {
+      setIsHistoryMerging(prev => ({ ...prev, [session.id]: false }));
+    }
+  };
+
+  const toggleSessionExpand = (sessId: string) => {
+    setExpandedSessions(prev => ({
+      ...prev,
+      [sessId]: !prev[sessId]
+    }));
+  };
+
   // Generate Recitation function
   const handleGenerateRecitation = async () => {
     if (!text || text.trim() === "") {
@@ -687,7 +828,9 @@ export default function App() {
         elapsedTimeMs: data.elapsedTimeMs,
         promptTokens: data.promptTokens,
         candidatesTokens: data.candidatesTokens,
-        totalTokens: data.totalTokens
+        totalTokens: data.totalTokens,
+        sessionId: data.session_id,
+        chunkIndex: data.chunk_index
       };
 
       setHistory(prev => [generatedItem, ...prev]);
@@ -1350,65 +1493,149 @@ export default function App() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {history.map((item) => (
-              <div 
-                id={`history-card-${item.id}`}
-                key={item.id}
-                className={`p-4 bg-black/40 border transition-all flex flex-col justify-between gap-3 ${
-                  currentAudio?.id === item.id 
-                    ? "border-[#c5a059] bg-[#c5a059]/3" 
-                    : "border-white/5 hover:border-white/10"
-                }`}
-              >
-                <div>
-                  <div className="flex justify-between items-center text-[10px] text-[#c5a059] font-mono mb-1">
-                    <span>{item.timestamp.toLocaleTimeString()}</span>
-                    <span className="bg-[#121212] px-1.5 py-0.2 rounded-xs border border-white/5">
-                      {getVoiceName(item.voice).split(" ")[0]} · {getStyleLabel(item.style)}
-                    </span>
-                  </div>
-                  <p className="text-xs font-serif text-stone-300 line-clamp-2 md:line-clamp-3 leading-relaxed italic">
-                    "{item.text}"
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-1.5 border-t border-white/5 pt-2.5 mt-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-gray-500 font-mono">
-                      时长: {formatTime(item.duration)} • 字数: {item.textLength}
-                    </span>
+          <div className="flex flex-col gap-4">
+            {groupHistory(history).map((session) => {
+              const isExpanded = !!expandedSessions[session.id];
+              const isSelected = currentAudio?.id === session.id;
+              
+              return (
+                <div 
+                  key={session.id}
+                  className={`p-5 bg-black/40 border transition-all flex flex-col gap-3 ${
+                    isSelected ? "border-[#c5a059] bg-[#c5a059]/3" : "border-white/5 hover:border-white/10"
+                  }`}
+                >
+                  {/* Row Header */}
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-gray-500 font-mono">
+                        {session.timestamp.toLocaleTimeString()}
+                      </span>
+                      <span className="bg-[#121212] px-2 py-0.5 rounded-xs border border-white/5 text-[10px] text-[#c5a059] font-mono">
+                        {session.isGroup ? `连读合集 · ${session.chunks.length} 折` : "单篇朗诵"}
+                      </span>
+                      <span className="bg-white/5 px-2 py-0.5 rounded-xs border border-white/5 text-[10px] text-stone-400 font-mono">
+                        {getVoiceName(session.voice).split(" ")[0]} · {getStyleLabel(session.style)}
+                      </span>
+                    </div>
                     
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => {
-                          setCurrentAudio(item);
-                          setIsPlaying(true);
-                        }}
-                        className="px-2.5 py-1 bg-[#121212] hover:bg-[#c5a059] hover:text-black transition-all border border-white/5 text-[10px] uppercase font-bold tracking-wider cursor-pointer"
-                      >
-                        点击播放
-                      </button>
-                      <button 
-                        onClick={() => handleDownload(item)}
-                        className="p-1 px-2 border border-white/10 hover:border-[#c5a059] text-gray-400 hover:text-white cursor-pointer"
-                        title="导出 WAV 音频"
-                      >
-                        <Download className="w-3 h-3" />
-                      </button>
+                    <div className="flex items-center gap-2 self-end md:self-auto">
+                      {session.isGroup ? (
+                        <>
+                          <button
+                            onClick={() => mergeAndDownloadHistorySession(session)}
+                            disabled={isHistoryMerging[session.id]}
+                            className="px-3 py-1.5 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-500/30 text-[10px] uppercase font-bold tracking-wider cursor-pointer flex items-center gap-1 disabled:opacity-50 transition-colors"
+                          >
+                            <Download className="w-3 h-3" />
+                            {isHistoryMerging[session.id] ? "正在合并..." : "合集下载"}
+                          </button>
+                          
+                          <button
+                            onClick={() => toggleSessionExpand(session.id)}
+                            className="px-3 py-1.5 bg-[#121212] hover:bg-white/10 text-stone-300 border border-white/5 text-[10px] cursor-pointer transition-colors"
+                          >
+                            {isExpanded ? "收起分卷 ▴" : "展开分卷 ▾"}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              setCurrentAudio(session.chunks[0]);
+                              setIsPlaying(true);
+                            }}
+                            className="px-3 py-1.5 bg-[#121212] hover:bg-[#c5a059] hover:text-black transition-all border border-white/5 text-[10px] uppercase font-bold tracking-wider cursor-pointer"
+                          >
+                            点击播放
+                          </button>
+                          <button
+                            onClick={() => handleDownload(session.chunks[0])}
+                            className="p-1.5 px-2.5 border border-white/10 hover:border-[#c5a059] text-gray-400 hover:text-white cursor-pointer"
+                            title="导出 WAV 音频"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
-                  {item.elapsedTimeMs !== undefined && (
-                    <div className="text-[9px] text-stone-500 font-mono flex flex-wrap gap-x-2 border-t border-white/5 pt-1.5 mt-0.5">
-                      <span>用时: {item.elapsedTimeMs}ms</span>
-                      {item.totalTokens ? (
-                        <span>• Token 消耗: {item.totalTokens} (输入: {item.promptTokens} / 输出: {item.candidatesTokens})</span>
-                      ) : null}
+                  
+                  {/* Text Preview */}
+                  <p className="text-xs font-serif text-stone-300 leading-relaxed italic line-clamp-1 border-l-2 border-[#c5a059]/30 pl-3 py-0.5">
+                    "{session.text.replace(/\n/g, " ")}"
+                  </p>
+                  
+                  {/* Row Footer Metrics */}
+                  <div className="flex flex-wrap items-center justify-between text-[10px] text-gray-500 font-mono border-t border-white/5 pt-2 mt-1 gap-2">
+                    <div>
+                      时长: {formatTime(session.duration)} • 字数: {session.textLength}
+                    </div>
+                    {session.elapsedTimeMs !== undefined && (
+                      <div className="flex flex-wrap gap-x-2 text-[#8e8e8e]">
+                        <span>总用时: {session.elapsedTimeMs}ms</span>
+                        {session.totalTokens ? (
+                          <span>• 总 Token: {session.totalTokens} (入: {session.promptTokens} / 出: {session.candidatesTokens})</span>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Chunks List (Expanded) */}
+                  {session.isGroup && isExpanded && (
+                    <div className="mt-3 pl-4 border-l border-white/10 flex flex-col gap-2">
+                      <div className="text-[10px] text-stone-500 font-mono mb-1 uppercase tracking-wider">分卷明细 (Scroll Chunks Detail)</div>
+                      {session.chunks.map((chunk, idx) => {
+                        const isChunkSelected = currentAudio?.id === chunk.id;
+                        
+                        return (
+                          <div 
+                            key={chunk.id}
+                            className={`p-3 bg-black/20 border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition-colors ${
+                              isChunkSelected ? "border-[#c5a059]/50 bg-[#c5a059]/2" : "border-white/5 hover:border-white/10"
+                            }`}
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[9px] text-[#c5a059] font-mono font-bold">第 {idx + 1} 折</span>
+                                <span className="text-[9px] text-stone-500 font-mono">时长: {formatTime(chunk.duration)} • 字数: {chunk.textLength}</span>
+                              </div>
+                              <p className="text-[11px] font-serif text-stone-400 line-clamp-1 italic">
+                                "{chunk.text}"
+                              </p>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 self-end sm:self-auto">
+                              {chunk.elapsedTimeMs !== undefined && (
+                                <span className="text-[9px] text-stone-600 font-mono mr-2">
+                                  {chunk.elapsedTimeMs}ms • {chunk.totalTokens}T
+                                </span>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setCurrentAudio(chunk);
+                                  setIsPlaying(true);
+                                }}
+                                className="px-2.5 py-1 bg-[#121212] hover:bg-[#c5a059] hover:text-black transition-all border border-white/5 text-[9px] uppercase font-bold tracking-wider cursor-pointer"
+                              >
+                                播放此折
+                              </button>
+                              <button
+                                onClick={() => handleDownload(chunk)}
+                                className="p-1 px-2 border border-white/10 hover:border-[#c5a059] text-gray-400 hover:text-white cursor-pointer"
+                                title="导出 WAV 音频"
+                              >
+                                <Download className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

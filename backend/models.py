@@ -13,6 +13,8 @@ class RecitationHistory(models.Model):
     prompt_tokens = models.IntegerField(default=0)
     candidates_tokens = models.IntegerField(default=0)
     total_tokens = models.IntegerField(default=0)
+    session_id = models.CharField(max_length=100, blank=True, null=True)
+    chunk_index = models.IntegerField(default=-1)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
