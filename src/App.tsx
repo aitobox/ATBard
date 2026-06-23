@@ -863,10 +863,7 @@ export default function App() {
     }
   };
 
-  // Filter presets based on selected category
-  const filteredPresets = activeCategory === "all" 
-    ? PRESETS 
-    : PRESETS.filter(p => p.category === activeCategory);
+
 
   // Download Audio Helper
   const handleDownload = (audioItem: GenerationHistory) => {
@@ -916,29 +913,7 @@ export default function App() {
           </div>
         </div>
         
-        {/* Preset categories filter tabs */}
-        <div className="flex flex-wrap items-center gap-2 bg-[#121212]/80 border border-white/5 p-1 rounded-sm">
-          {[
-            { id: "all", label: "全部经典" },
-            { id: "classical", label: "古诗词" },
-            { id: "prose", label: "散文名家" },
-            { id: "modern", label: "现代诗歌" },
-            { id: "english", label: "English Classics" }
-          ].map(tab => (
-            <button
-              id={`tab-${tab.id}`}
-              key={tab.id}
-              onClick={() => setActiveCategory(tab.id)}
-              className={`px-3 py-1.5 text-xs tracking-wider transition-all duration-200 cursor-pointer ${
-                activeCategory === tab.id 
-                  ? "bg-[#c5a059] text-black font-medium rounded-xs" 
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+
         
         <div className="hidden lg:flex items-center gap-6 text-[11px] uppercase tracking-widest text-gray-500 font-mono">
           <span className="text-white hover:text-[#c5a059] transition-colors cursor-pointer">● Reciter</span>
@@ -973,33 +948,7 @@ export default function App() {
         {/* Left Side: Textarea & Presets */}
         <div id="main_editor_panel" className="flex-1 flex flex-col gap-6">
           
-          {/* Preset Chips */}
-          <div className="flex flex-col gap-2">
-            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-mono flex items-center gap-1.5 select-none">
-              <BookOpen className="w-3 h-3 text-[#c5a059]" />
-              加注诗书 · 轻点名篇载入 (Presets)
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-              {filteredPresets.map((preset) => (
-                <button
-                  id={`preset-${preset.id}`}
-                  key={preset.id}
-                  onClick={() => loadPreset(preset)}
-                  className="p-3 bg-[#111111] border border-white/5 hover:border-[#c5a059]/40 hover:bg-[#161616] text-left transition-all duration-300 group flex flex-col justify-between h-20 cursor-pointer"
-                >
-                  <div className="text-xs text-stone-200 font-serif font-semibold group-hover:text-white truncate">
-                    {preset.title}
-                  </div>
-                  <div className="flex justify-between items-center mt-1">
-                    <span className="text-[10px] text-gray-500 font-serif">{preset.author}</span>
-                    <span className="text-[9px] px-1 py-0.2 bg-white/5 text-[#c5a059] font-mono rounded-xs scale-90 origin-right">
-                      {preset.recommendedVoice}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
+
 
           <div id="editor_header" className="flex justify-between items-end mt-2">
             <div>
