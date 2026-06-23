@@ -51,31 +51,92 @@ def pcm_to_wav(pcm_input, sample_rate: int = 24000) -> str:
         print("Error in PCM to WAV conversion:", e)
         raise e
 
-# Lazy initialization of Google Gen AI client
+from .models import APISettings
+
+# Lazy initialization of Google Gen AI client with settings caching
+_cached_settings_data = None
 _ai_client = None
 
 def get_ai_client():
-    global _ai_client
-    if _ai_client is None:
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is not configured. Please add it via Settings > Secrets.")
-        _ai_client = genai.Client(
-            api_key=api_key,
-            http_options={
-                'headers': {
-                    'User-Agent': 'aistudio-build',
+    global _ai_client, _cached_settings_data
+    
+    try:
+        settings_obj = APISettings.get_settings()
+        current_data = {
+            "api_type": settings_obj.api_type,
+            "gemini_api_key": settings_obj.gemini_api_key,
+            "new_api_base_url": settings_obj.new_api_base_url,
+            "new_api_key": settings_obj.new_api_key
+        }
+    except Exception as e:
+        print("[Views] Error retrieving DB settings:", e)
+        current_data = {
+            "api_type": "official",
+            "gemini_api_key": "",
+            "new_api_base_url": "http://192.168.100.170:3000/v1",
+            "new_api_key": ""
+        }
+        
+    if _ai_client is None or _cached_settings_data != current_data:
+        _cached_settings_data = current_data
+        api_type = current_data["api_type"]
+        
+        if api_type == "new_api":
+            api_key = current_data["new_api_key"] or os.environ.get("NEW_API_KEY") or os.environ.get("OPENAI_API_KEY")
+            base_url = current_data["new_api_base_url"] or "http://192.168.100.170:3000/v1"
+            
+            if not api_key:
+                raise ValueError("未配置 NEWAPI 密钥。请在设置中输入密钥。")
+                
+            clean_base = base_url.strip()
+            if clean_base.endswith("/v1"):
+                clean_base = clean_base[:-3]
+            elif clean_base.endswith("/v1/"):
+                clean_base = clean_base[:-4]
+                
+            _ai_client = genai.Client(
+                api_key=api_key,
+                http_options={
+                    'base_url': clean_base,
+                    'headers': {
+                        'User-Agent': 'aistudio-build',
+                    }
                 }
-            }
-        )
+            )
+        else:
+            api_key = current_data["gemini_api_key"] or os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("未配置 GEMINI_API_KEY。请在设置中输入密钥，或在 Secrets 中添加。")
+                
+            _ai_client = genai.Client(
+                api_key=api_key,
+                http_options={
+                    'headers': {
+                        'User-Agent': 'aistudio-build',
+                    }
+                }
+            )
+            
     return _ai_client
 
 # Health check API
 def health_view(request):
-    has_key = bool(os.environ.get("GEMINI_API_KEY"))
+    try:
+        settings_obj = APISettings.get_settings()
+        api_type = settings_obj.api_type
+        if api_type == "new_api":
+            has_key = bool(settings_obj.new_api_key or os.environ.get("NEW_API_KEY") or os.environ.get("OPENAI_API_KEY"))
+        else:
+            has_key = bool(settings_obj.gemini_api_key or os.environ.get("GEMINI_API_KEY"))
+    except Exception:
+        api_type = "official"
+        has_key = bool(os.environ.get("GEMINI_API_KEY"))
+        
     return JsonResponse({
         "status": "ok",
-        "hasKey": has_key
+        "hasKey": has_key,
+        "apiType": api_type,
+        "version": "3.1-flash"
     })
 
 # Recite Generation API
@@ -324,6 +385,59 @@ def history_view(request):
     except Exception as e:
         print("[Recite App] Fetch history error:", e)
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+def settings_view(request):
+    try:
+        settings_obj = APISettings.get_settings()
+    except Exception as e:
+        return JsonResponse({"error": f"Failed to access DB settings: {str(e)}"}, status=500)
+        
+    if request.method == 'GET':
+        masked_gemini = settings_obj.gemini_api_key or os.environ.get("GEMINI_API_KEY") or ""
+        masked_new_api = settings_obj.new_api_key or os.environ.get("NEW_API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
+        
+        if masked_gemini:
+            masked_gemini = masked_gemini[:4] + "..." + masked_gemini[-4:] if len(masked_gemini) > 8 else "********"
+        if masked_new_api:
+            masked_new_api = masked_new_api[:4] + "..." + masked_new_api[-4:] if len(masked_new_api) > 8 else "********"
+            
+        return JsonResponse({
+            "api_type": settings_obj.api_type,
+            "gemini_api_key": masked_gemini,
+            "new_api_base_url": settings_obj.new_api_base_url,
+            "new_api_key": masked_new_api
+        })
+        
+    elif request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            
+        api_type = body.get("api_type", "official")
+        gemini_api_key = body.get("gemini_api_key", "")
+        new_api_base_url = body.get("new_api_base_url", "http://192.168.100.170:3000/v1")
+        new_api_key = body.get("new_api_key", "")
+        
+        # Prevent overwriting real keys when masked values are returned
+        if gemini_api_key == "********" or (gemini_api_key and "..." in gemini_api_key):
+            gemini_api_key = settings_obj.gemini_api_key
+        if new_api_key == "********" or (new_api_key and "..." in new_api_key):
+            new_api_key = settings_obj.new_api_key
+            
+        try:
+            settings_obj.api_type = api_type
+            settings_obj.gemini_api_key = gemini_api_key
+            settings_obj.new_api_base_url = new_api_base_url
+            settings_obj.new_api_key = new_api_key
+            settings_obj.save()
+        except Exception as e:
+            return JsonResponse({"error": f"Failed to save settings: {str(e)}"}, status=500)
+            
+        return JsonResponse({"status": "success"})
+
 
 # Serve built frontend index.html
 def index_view(request):
