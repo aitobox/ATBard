@@ -22,3 +22,18 @@ class RecitationHistory(models.Model):
 
     def __str__(self):
         return f"Recitation {self.id} - {self.voice} ({self.timestamp})"
+
+
+class APISettings(models.Model):
+    api_type = models.CharField(max_length=20, default='official') # 'official' | 'new_api'
+    gemini_api_key = models.CharField(max_length=255, blank=True, default='')
+    new_api_base_url = models.CharField(max_length=255, default='http://192.168.100.170:3000/v1')
+    new_api_key = models.CharField(max_length=255, blank=True, default='')
+
+    class Meta:
+        verbose_name = "API Settings"
+
+    @classmethod
+    def get_settings(cls):
+        settings_obj, created = cls.objects.get_or_create(id=1)
+        return settings_obj
