@@ -950,7 +950,7 @@ export default function App() {
           
 
 
-          <div id="editor_header" className="flex justify-between items-end mt-2">
+          <div id="editor_header" className="flex justify-between items-center mt-2">
             <div>
               <h1 className="text-2xl md:text-3xl font-serif italic text-white leading-tight font-medium flex items-center gap-2">
                 Manuscript Editor
@@ -962,8 +962,78 @@ export default function App() {
                 请输入你需要配音或朗诵的文学诗稿、演讲词或散文乐段 {isLongModeActive && " · [已启用长链智能分卷]"}
               </p>
             </div>
-            <div className="text-[10px] text-gray-500 font-mono tracking-widest uppercase bg-white/5 px-2 py-1 rounded-xs">
-              WORDS: <span className="text-white font-bold">{text.length}</span> / 50000
+            
+            <div className="flex items-center gap-3">
+              {/* Cascading Template Selector */}
+              <div className="relative" ref={templateMenuRef}>
+                <button
+                  id="btn_template_selector"
+                  onClick={() => setIsTemplateMenuOpen(!isTemplateMenuOpen)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#121212] border border-[#c5a059]/20 hover:border-[#c5a059]/60 text-stone-300 hover:text-white cursor-pointer transition-all duration-200 text-xs font-mono select-none"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-[#c5a059]" />
+                  <span>模版示例</span>
+                  <ChevronDown className={`w-3 h-3 text-stone-500 transition-transform duration-200 ${isTemplateMenuOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {isTemplateMenuOpen && (
+                  <div 
+                    className="absolute right-0 mt-2 w-48 bg-[#0f0f0f] border border-white/10 shadow-2xl rounded-sm py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150"
+                    onMouseLeave={() => setActiveHoverCategory(null)}
+                  >
+                    {[
+                      { id: "classical", label: "古诗词" },
+                      { id: "prose", label: "散文名家" },
+                      { id: "modern", label: "现代诗歌" },
+                      { id: "english", label: "English" }
+                    ].map((cat) => {
+                      const isHovered = activeHoverCategory === cat.id;
+                      const categoryPresets = PRESETS.filter(p => p.category === cat.id);
+                      
+                      return (
+                        <div 
+                          key={cat.id} 
+                          className="relative"
+                          onMouseEnter={() => setActiveHoverCategory(cat.id)}
+                        >
+                          <button
+                            className={`w-full px-4 py-2 text-left text-xs tracking-wider transition-colors flex justify-between items-center cursor-pointer ${
+                              isHovered ? "bg-[#c5a059] text-black font-semibold" : "text-gray-300 hover:bg-white/5 hover:text-white"
+                            }`}
+                          >
+                            <span>{cat.label}</span>
+                            <ChevronRight className={`w-3.5 h-3.5 ${isHovered ? "text-black" : "text-gray-500"}`} />
+                          </button>
+
+                          {/* Submenu for specific presets */}
+                          {isHovered && categoryPresets.length > 0 && (
+                            <div className="absolute right-full top-0 mr-1 w-56 bg-[#0f0f0f] border border-white/10 shadow-2xl rounded-sm py-1.5 z-50 animate-in fade-in slide-in-from-right-1 duration-150">
+                              {categoryPresets.map((preset) => (
+                                <button
+                                  key={preset.id}
+                                  onClick={() => {
+                                    loadPreset(preset);
+                                    setIsTemplateMenuOpen(false);
+                                    setActiveHoverCategory(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-xs tracking-wider text-gray-300 hover:bg-[#c5a059] hover:text-black hover:font-semibold transition-colors flex flex-col gap-0.5 cursor-pointer"
+                                >
+                                  <span className="font-serif truncate font-medium">{preset.title}</span>
+                                  <span className="text-[9px] opacity-60 font-mono self-end">{preset.author}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="text-[10px] text-gray-500 font-mono tracking-widest uppercase bg-white/5 px-2.5 py-1.5 border border-white/5 rounded-xs select-none">
+                WORDS: <span className="text-white font-bold">{text.length}</span> / 50000
+              </div>
             </div>
           </div>
           
