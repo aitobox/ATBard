@@ -16,7 +16,9 @@ import {
   FileText,
   AlertCircle,
   Code,
-  Music4
+  Music4,
+  ChevronRight,
+  ChevronDown
 } from "lucide-react";
 import { PRESETS, RecitationPreset } from "./presets";
 
@@ -295,8 +297,10 @@ export default function App() {
   const [volume, setVolume] = useState<number>(0.8);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   
-  // Tabs & panels
-  const [activeCategory, setActiveCategory] = useState<string>("all");
+  // Templates menu state
+  const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false);
+  const [activeHoverCategory, setActiveHoverCategory] = useState<string | null>(null);
+  const templateMenuRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<GenerationHistory[]>([]);
   const [showPromptInspector, setShowPromptInspector] = useState<boolean>(false);
   
@@ -360,6 +364,20 @@ export default function App() {
       .catch((err) => {
         console.error("Error loading history list:", err);
       });
+  }, []);
+
+  // Click outside template selector handler to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (templateMenuRef.current && !templateMenuRef.current.contains(event.target as Node)) {
+        setIsTemplateMenuOpen(false);
+        setActiveHoverCategory(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   // Sync audio ref with state
