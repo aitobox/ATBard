@@ -18,7 +18,8 @@ import {
   Code,
   Music4,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Sun
 } from "lucide-react";
 import { PRESETS, RecitationPreset } from "./presets";
 
@@ -315,6 +316,23 @@ export default function App() {
   const [newApiKey, setNewApiKey] = useState("");
   const [modelName, setModelName] = useState("gemini-3.1-flash-tts");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  // Theme Toggler state
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    return (localStorage.getItem("theme") as "dark" | "light") || "dark";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("theme", theme);
+    const root = document.documentElement;
+    if (theme === "light") {
+      root.classList.add("light");
+      root.classList.remove("dark");
+    } else {
+      root.classList.add("dark");
+      root.classList.remove("light");
+    }
+  }, [theme]);
 
   // Fetch settings on mount
   useEffect(() => {
@@ -922,31 +940,31 @@ export default function App() {
   };
 
   return (
-    <div id="app_container" className="w-full min-h-screen bg-[#070707] text-[#d4d4d4] font-sans flex flex-col justify-between overflow-x-hidden antialiased selection:bg-[#c5a059] selection:text-black">
+    <div id="app_container" className="w-full min-h-screen bg-bg-app text-text-secondary font-sans flex flex-col justify-between overflow-x-hidden antialiased selection:bg-text-accent selection:text-bg-panel">
       
       {/* Header section */}
-      <nav id="navbar" className="flex flex-col md:flex-row justify-between items-center px-6 md:px-12 py-5 border-b border-white/5 bg-[#0a0a0aj] backdrop-blur-md sticky top-0 z-50 gap-4">
+      <nav id="navbar" className="flex flex-col md:flex-row justify-between items-center px-6 md:px-12 py-5 border-b border-border-color bg-bg-header backdrop-blur-md sticky top-0 z-50 gap-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-gradient-to-tr from-[#c5a059] to-[#8e6e3c] rounded-sm flex items-center justify-center shadow-lg shadow-[#c5a059]/10">
             <Music4 className="w-4 h-4 text-black" />
           </div>
           <div>
-            <span className="text-xl font-light tracking-[0.25em] uppercase text-white font-serif">
-              ATBard <span className="text-xs align-super opacity-60 text-[#c5a059] font-mono leading-none">3.1</span>
+            <span className="text-xl font-light tracking-[0.25em] uppercase text-text-primary font-serif">
+              ATBard <span className="text-xs align-super opacity-60 text-text-accent font-mono leading-none">3.1</span>
             </span>
-            <p className="text-[9px] text-[#c5a059]/60 tracking-widest uppercase font-mono mt-0.5">Gemini High-Fidelity TTS Engine</p>
+            <p className="text-[9px] text-text-accent/60 tracking-widest uppercase font-mono mt-0.5">Gemini High-Fidelity TTS Engine</p>
           </div>
         </div>
         
 
         
-        <div className="hidden lg:flex items-center gap-6 text-[11px] uppercase tracking-widest text-gray-500 font-mono">
-          <span className="text-white hover:text-[#c5a059] transition-colors cursor-pointer">● Reciter</span>
-          <a href="#history_section" className="hover:text-[#c5a059] transition-colors">History</a>
+        <div className="hidden lg:flex items-center gap-6 text-[11px] uppercase tracking-widest text-text-muted font-mono">
+          <span className="text-text-primary hover:text-text-accent transition-colors cursor-pointer">● Reciter</span>
+          <a href="#history_section" className="hover:text-text-accent transition-colors">History</a>
           <span className="opacity-40 select-none">|</span>
           <button 
             onClick={() => setShowPromptInspector(!showPromptInspector)} 
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-[#121212] border border-[#c5a059]/20 hover:border-[#c5a059]/60 text-[#c5a059] cursor-pointer transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-bg-input border border-text-accent/20 hover:border-text-accent/60 text-text-accent cursor-pointer transition-colors"
           >
             <Code className="w-3 h-3" />
             <span>Prompt AI</span>
@@ -954,10 +972,18 @@ export default function App() {
           <span className="opacity-40 select-none">|</span>
           <button 
             onClick={() => setShowSettingsModal(true)} 
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-[#121212] border border-white/10 hover:border-[#c5a059]/40 text-stone-300 hover:text-white cursor-pointer transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-bg-input border border-border-color-strong hover:border-text-accent/40 text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
           >
             <Sliders className="w-3 h-3" />
             <span>Settings</span>
+          </button>
+          <span className="opacity-40 select-none">|</span>
+          <button 
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
+            className="flex items-center justify-center p-1.5 rounded-xs bg-bg-input border border-border-color-strong text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+            title={theme === "dark" ? "切换至浅色模式" : "切换至深色模式"}
+          >
+            {theme === "dark" ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-400" />}
           </button>
         </div>
       </nav>
@@ -985,13 +1011,13 @@ export default function App() {
 
           <div id="editor_header" className="flex justify-between items-center mt-2">
             <div>
-              <h1 className="text-2xl md:text-3xl font-serif italic text-white leading-tight font-medium flex items-center gap-2">
+              <h1 className="text-2xl md:text-3xl font-serif italic text-text-primary leading-tight font-medium flex items-center gap-2">
                 Manuscript Editor
-                <span className="not-italic text-xs font-mono font-normal tracking-widest uppercase text-[#c5a059]/60 px-2 py-0.5 bg-[#c5a059]/5 border border-[#c5a059]/10 rounded-sm">
+                <span className="not-italic text-xs font-mono font-normal tracking-widest uppercase text-text-accent/60 px-2 py-0.5 bg-text-accent/5 border border-text-accent/10 rounded-sm">
                   手稿编撰
                 </span>
               </h1>
-              <p className="text-xs text-gray-500 tracking-wide uppercase mt-1">
+              <p className="text-xs text-text-muted tracking-wide uppercase mt-1">
                 请输入你需要配音或朗诵的文学诗稿、演讲词或散文乐段 {isLongModeActive && " · [已启用长链智能分卷]"}
               </p>
             </div>
@@ -1002,16 +1028,16 @@ export default function App() {
                 <button
                   id="btn_template_selector"
                   onClick={() => setIsTemplateMenuOpen(!isTemplateMenuOpen)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#121212] border border-[#c5a059]/20 hover:border-[#c5a059]/60 text-stone-300 hover:text-white cursor-pointer transition-all duration-200 text-xs font-mono select-none"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-bg-input border border-text-accent/20 hover:border-text-accent/60 text-text-secondary hover:text-text-primary cursor-pointer transition-all duration-200 text-xs font-mono select-none"
                 >
-                  <BookOpen className="w-3.5 h-3.5 text-[#c5a059]" />
+                  <BookOpen className="w-3.5 h-3.5 text-text-accent" />
                   <span>模版示例</span>
-                  <ChevronDown className={`w-3 h-3 text-stone-500 transition-transform duration-200 ${isTemplateMenuOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`w-3 h-3 text-text-muted transition-transform duration-200 ${isTemplateMenuOpen ? "rotate-180" : ""}`} />
                 </button>
 
                 {isTemplateMenuOpen && (
                   <div 
-                    className="absolute right-0 mt-2 w-48 bg-[#0f0f0f] border border-white/10 shadow-2xl rounded-sm py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150"
+                    className="absolute right-0 mt-2 w-48 bg-bg-panel border border-border-color-strong shadow-2xl rounded-sm py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150"
                     onMouseLeave={() => setActiveHoverCategory(null)}
                   >
                     {[
@@ -1031,16 +1057,16 @@ export default function App() {
                         >
                           <button
                             className={`w-full px-4 py-2 text-left text-xs tracking-wider transition-colors flex justify-between items-center cursor-pointer ${
-                              isHovered ? "bg-[#c5a059] text-black font-semibold" : "text-gray-300 hover:bg-white/5 hover:text-white"
+                              isHovered ? "bg-text-accent text-bg-panel font-semibold" : "text-text-secondary hover:bg-bg-card-sub hover:text-text-primary"
                             }`}
                           >
                             <span>{cat.label}</span>
-                            <ChevronRight className={`w-3.5 h-3.5 ${isHovered ? "text-black" : "text-gray-500"}`} />
+                            <ChevronRight className={`w-3.5 h-3.5 ${isHovered ? "text-bg-panel" : "text-text-muted"}`} />
                           </button>
 
                           {/* Submenu for specific presets */}
                           {isHovered && categoryPresets.length > 0 && (
-                            <div className="absolute right-full top-0 mr-1 w-56 bg-[#0f0f0f] border border-white/10 shadow-2xl rounded-sm py-1.5 z-50 animate-in fade-in slide-in-from-right-1 duration-150">
+                            <div className="absolute right-full top-0 mr-1 w-56 bg-bg-panel border border-border-color-strong shadow-2xl rounded-sm py-1.5 z-50 animate-in fade-in slide-in-from-right-1 duration-150">
                               {categoryPresets.map((preset) => (
                                 <button
                                   key={preset.id}
@@ -1049,7 +1075,7 @@ export default function App() {
                                     setIsTemplateMenuOpen(false);
                                     setActiveHoverCategory(null);
                                   }}
-                                  className="w-full px-4 py-2 text-left text-xs tracking-wider text-gray-300 hover:bg-[#c5a059] hover:text-black hover:font-semibold transition-colors flex flex-col gap-0.5 cursor-pointer"
+                                  className="w-full px-4 py-2 text-left text-xs tracking-wider text-text-secondary hover:bg-text-accent hover:text-bg-panel hover:font-semibold transition-colors flex flex-col gap-0.5 cursor-pointer"
                                 >
                                   <span className="font-serif truncate font-medium">{preset.title}</span>
                                   <span className="text-[9px] opacity-60 font-mono self-end">{preset.author}</span>
@@ -1064,26 +1090,26 @@ export default function App() {
                 )}
               </div>
 
-              <div className="text-[10px] text-gray-500 font-mono tracking-widest uppercase bg-white/5 px-2.5 py-1.5 border border-white/5 rounded-xs select-none">
-                WORDS: <span className="text-white font-bold">{text.length}</span> / 50000
+              <div className="text-[10px] text-text-muted font-mono tracking-widest uppercase bg-bg-card-sub px-2.5 py-1.5 border border-border-color rounded-xs select-none">
+                WORDS: <span className="text-text-primary font-bold">{text.length}</span> / 50000
               </div>
             </div>
           </div>
           
           {/* Main Textarea input */}
-          <div className="relative flex-1 min-h-[300px] flex flex-col bg-[#111] border border-white/5 focus-within:border-[#c5a059]/40 transition-colors">
+          <div className="relative flex-1 min-h-[300px] flex flex-col bg-bg-input border border-border-color focus-within:border-text-accent/40 transition-colors">
             <textarea 
               id="raw_text_textarea"
               maxLength={50000}
-              className="w-full flex-1 bg-transparent p-6 md:p-8 text-neutral-300 text-lg leading-relaxed font-serif text-gray-300 focus:outline-none resize-none placeholder-stone-600 border-none"
+              className="w-full flex-1 bg-transparent p-6 md:p-8 text-text-primary text-lg leading-relaxed font-serif focus:outline-none resize-none placeholder-stone-400 dark:placeholder-stone-600 border-none"
               placeholder="请在此输入或剪贴您需要完美吟诵或高真配音的诗行、短文或旁白..."
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
             
             {/* Action block directly inside editor */}
-            <div className="p-4 border-t border-white/5 bg-[#0e0e0e] flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex gap-2 text-[10px] text-gray-500 font-mono">
+            <div className="p-4 border-t border-border-color bg-bg-card-sub flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="flex gap-2 text-[10px] text-text-muted font-mono">
                 <span>[环境支持: 连读最大5万字]</span>
                 <span>•</span>
                 <span>[语音引擎: 3.1-flash-tts]</span>
@@ -1097,7 +1123,7 @@ export default function App() {
                 <button 
                   id="btn_clear_text"
                   onClick={() => setText("")}
-                  className="px-3 py-2 border border-white/5 text-gray-400 hover:text-white hover:bg-white/5 text-xs uppercase cursor-pointer"
+                  className="px-3 py-2 border border-border-color text-text-secondary hover:text-text-primary hover:bg-bg-card-sub text-xs uppercase cursor-pointer"
                 >
                   清空
                 </button>
@@ -1106,11 +1132,11 @@ export default function App() {
                   id="btn_generate_speech"
                   disabled={isGenerating || isForgingAll}
                   onClick={handleGenerateRecitation}
-                  className="px-6 py-2 bg-[#c5a059] text-black text-xs font-bold uppercase tracking-widest hover:bg-[#d4b069] transition-all disabled:bg-stone-700 disabled:text-stone-400 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer shadow-lg shadow-[#c5a059]/5 active:scale-95"
+                  className="px-6 py-2 bg-text-accent text-bg-panel text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer shadow-lg shadow-text-accent/5 active:scale-95"
                 >
                   {isGenerating || isForgingAll ? (
                     <>
-                      <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
                       <span>{isLongModeActive ? "全卷连载炼制中..." : "合成吟诵中..."}</span>
                     </>
                   ) : (
@@ -1126,22 +1152,22 @@ export default function App() {
 
           {/* Prompt parameter inspector logic (Hidden by default, toggled via Navbar) */}
           {showPromptInspector && (
-            <div id="prompt_inspector_box" className="p-5 bg-[#0f0f0f] border border-[#c5a059]/30 rounded-xs transition-opacity duration-300">
-              <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-                <span className="text-xs uppercase font-mono tracking-widest text-[#c5a059] flex items-center gap-1.5">
+            <div id="prompt_inspector_box" className="p-5 bg-bg-panel border border-border-color-strong rounded-xs transition-opacity duration-300">
+              <div className="flex items-center justify-between mb-3 border-b border-border-color pb-2">
+                <span className="text-xs uppercase font-mono tracking-widest text-text-accent flex items-center gap-1.5">
                   <Code className="w-3.5 h-3.5" /> Prompt Instruction Engineering
                 </span>
                 <button 
                   onClick={() => setShowPromptInspector(false)}
-                  className="text-[10px] font-mono text-gray-400 hover:text-white cursor-pointer"
+                  className="text-[10px] font-mono text-text-secondary hover:text-text-primary cursor-pointer"
                 >
                   关闭
                 </button>
               </div>
-              <p className="text-xs text-stone-400 leading-relaxed mb-3">
+              <p className="text-xs text-text-secondary leading-relaxed mb-3">
                 利用 Gemini 强大的上下文遵循能力，我们将您的文本注入专门调校的艺术指令包裹中。这能将原本温吞机械的默认合成音，塑造成真正充满戏剧起伏的高雅朗诵：
               </p>
-              <div className="bg-black/60 p-4 border border-white/5 rounded-sm font-mono text-[11px] text-[#c5a059]/80 whitespace-pre-wrap leading-relaxed select-all">
+              <div className="bg-bg-card-sub p-4 border border-border-color rounded-sm font-mono text-[11px] text-text-accent/80 whitespace-pre-wrap leading-relaxed select-all">
                 {`你是一位顶级的艺术朗诵家和配音大师。请用以下艺术风格和语速要求，深情并茂地朗诵后面的文本。
 【朗诵风格要求】:${
                   selectedStyle === "elegant" 
@@ -1160,25 +1186,25 @@ export default function App() {
 
           {/* Smart Long Scrollwork Partitioning Management Console */}
           {isLongModeActive && (
-            <div id="long_scrollwork_board" className="bg-[#0f0f0f] border border-[#c5a059]/20 p-5 rounded-xs mt-6 transition-all">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-white/5 pb-3 mb-4">
+            <div id="long_scrollwork_board" className="bg-bg-panel border border-border-color-strong p-5 rounded-xs mt-6 transition-all">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-border-color pb-3 mb-4">
                 <div>
-                  <h3 className="text-sm font-serif text-white font-medium flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-[#c5a059]" />
+                  <h3 className="text-sm font-serif text-text-primary font-medium flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-text-accent" />
                     智能名著分卷连读 (Smart Scrollwork Partitioning)
                   </h3>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
+                  <p className="text-[11px] text-text-muted mt-0.5">
                     我们已将您的连续字篇优雅切割为独立书册，分段提交可保障完美高真音品。
                   </p>
                 </div>
                 
                 <div className="flex items-center gap-2.5 self-end sm:self-auto">
-                  <label className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-400 select-none">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-xs text-text-secondary select-none">
                     <input 
                       type="checkbox" 
                       checked={autoPlayNext} 
                       onChange={(e) => setAutoPlayNext(e.target.checked)}
-                      className="rounded-xs border-white/10 text-[#c5a059] focus:ring-0 bg-[#141414] h-3.5 w-3.5 accent-[#c5a059]"
+                      className="rounded-xs border-border-color text-text-accent focus:ring-0 bg-bg-input h-3.5 w-3.5 accent-text-accent"
                     />
                     连续接力演奏
                   </label>
@@ -1186,10 +1212,10 @@ export default function App() {
               </div>
 
               {/* Batch forge triggers */}
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-white/3 p-3 rounded-xs border border-white/5 mb-4">
-                <div className="text-[11px] font-mono text-gray-400">
-                  划分 <span className="text-white font-bold">{playableChunks.length}</span> 折书卷 • 
-                  就绪 <span className="text-[#c5a059] font-bold">{playableChunks.filter(c => c.status === 'ready').length}</span> 折
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-bg-card-sub p-3 rounded-xs border border-border-color mb-4">
+                <div className="text-[11px] font-mono text-text-secondary">
+                  划分 <span className="text-text-primary font-bold">{playableChunks.length}</span> 折书卷 • 
+                  就绪 <span className="text-text-accent font-bold">{playableChunks.filter(c => c.status === 'ready').length}</span> 折
                 </div>
                 
                 <div className="flex items-center gap-2">
@@ -1204,7 +1230,7 @@ export default function App() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={forgeAllScrollsSequential}
-                        className="px-3 py-1.5 bg-[#c5a059]/10 hover:bg-[#c5a059]/20 text-[#c5a059] border border-[#c5a059]/30 text-[10px] uppercase tracking-wider font-bold rounded-xs cursor-pointer transition-colors flex items-center gap-1.5"
+                        className="px-3 py-1.5 bg-text-accent/10 hover:bg-text-accent/20 text-text-accent border border-text-accent/30 text-[10px] uppercase tracking-wider font-bold rounded-xs cursor-pointer transition-colors flex items-center gap-1.5"
                       >
                         <Sparkles className="w-3 h-3 fill-current" />
                         一键炼制全篇 ({playableChunks.filter(c => c.status !== 'ready').length}段待处理)
@@ -1229,30 +1255,30 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[220px] overflow-y-auto pr-1">
                 {playableChunks.map((chunk, index) => {
                   const isSelected = index === currentChunkIdx;
-                  let borderClass = "border-white/5 bg-[#141414]";
+                  let borderClass = "border-border-color bg-bg-card-sub";
                   let statusBadge = null;
                   
                   if (isSelected) {
-                    borderClass = "border-[#c5a059]/60 bg-[#c5a059]/5";
+                    borderClass = "border-text-accent/60 bg-text-accent/5";
                   }
                   
                   switch (chunk.status) {
                     case 'generating':
                       statusBadge = (
-                        <span className="text-[9px] text-[#c5a059] flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-ping" />
+                        <span className="text-[9px] text-text-accent flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-text-accent animate-ping" />
                           合成中
                         </span>
                       );
                       break;
                     case 'ready':
-                      statusBadge = <span className="text-[9px] text-emerald-400">已就绪</span>;
+                      statusBadge = <span className="text-[9px] text-emerald-600 dark:text-emerald-400">已就绪</span>;
                       break;
                     case 'error':
                       statusBadge = <span className="text-[9px] text-red-400" title={chunk.error}>断流</span>;
                       break;
                     default:
-                      statusBadge = <span className="text-[9px] text-gray-500">待合成</span>;
+                      statusBadge = <span className="text-[9px] text-text-muted">待合成</span>;
                   }
 
                   return (
@@ -1262,19 +1288,19 @@ export default function App() {
                       onClick={() => playSpecificChunk(index)}
                     >
                       <div className="flex justify-between items-start mb-1 select-none">
-                        <span className="text-[10px] font-mono tracking-wider text-gray-400 font-bold">
+                        <span className="text-[10px] font-mono tracking-wider text-text-secondary font-bold">
                           第 {index + 1} 卷
                         </span>
                         {statusBadge}
                       </div>
                       
-                      <p className="text-[11px] font-serif text-stone-300 line-clamp-1 italic group-hover:text-white transition-colors">
+                      <p className="text-[11px] font-serif text-text-secondary line-clamp-1 italic group-hover:text-text-primary transition-colors">
                         "{chunk.text}"
                       </p>
                       
-                      <div className="flex items-center justify-between mt-1 text-[9px] font-mono text-gray-500">
+                      <div className="flex items-center justify-between mt-1 text-[9px] font-mono text-text-muted">
                         <span>{chunk.text.length} 字</span>
-                        <span className="text-[#c5a059] opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-text-accent opacity-0 group-hover:opacity-100 transition-opacity">
                           {chunk.status === 'ready' ? "主控放音" : "一键吟诵"} →
                         </span>
                       </div>
@@ -1292,11 +1318,11 @@ export default function App() {
           {/* Voice Setup Group */}
           <section id="section_voice_picker" className="flex flex-col gap-3">
             <div className="flex justify-between items-center">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-mono flex items-center gap-1">
+              <h3 className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono flex items-center gap-1">
                 <span>01.</span>
                 <span>Select Voice / 选角吟松</span>
               </h3>
-              <span className="text-[9px] text-stone-500 font-mono uppercase bg-[#141414] px-1.5 py-0.5 rounded-sm border border-white/5">
+              <span className="text-[9px] text-text-muted font-mono uppercase bg-bg-card-sub px-1.5 py-0.5 rounded-sm border border-border-color">
                 5 Cores
               </span>
             </div>
@@ -1309,24 +1335,24 @@ export default function App() {
                   onClick={() => setSelectedVoice(vo.id)}
                   className={`p-3.5 bg-gradient-to-r transition-all duration-300 flex items-center gap-4 cursor-pointer relative ${
                     selectedVoice === vo.id 
-                      ? "from-[#1a1a1a] to-[#252019] border border-[#c5a059]/50 shadow-md shadow-[#c5a059]/5" 
-                      : "from-[#111] to-[#111] border border-white/5 hover:border-white/10 hover:bg-[#151515]"
+                      ? "from-bg-card-sub to-bg-panel border border-text-accent/50 shadow-md shadow-text-accent/5" 
+                      : "from-bg-input to-bg-input border border-border-color hover:border-border-color-strong hover:bg-bg-card-sub"
                   }`}
                 >
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center font-serif italic text-sm ${
-                    selectedVoice === vo.id ? "bg-[#c5a059] text-black font-semibold" : "bg-neutral-800 text-gray-400"
+                    selectedVoice === vo.id ? "bg-text-accent text-bg-panel font-semibold" : "bg-bg-card-sub text-text-muted border border-border-color"
                   }`}>
                     {vo.id[0]}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-1">
-                      <div className="text-xs text-white font-medium truncate">{vo.name}</div>
-                      <div className="text-[9px] font-mono opacity-50 px-1 py-0.2 bg-white/5 text-stone-400 scale-90">{vo.type}</div>
+                      <div className="text-xs text-text-primary font-medium truncate">{vo.name}</div>
+                      <div className="text-[9px] font-mono opacity-50 px-1 py-0.2 bg-bg-card-sub text-text-muted scale-90">{vo.type}</div>
                     </div>
-                    <div className="text-[10px] text-gray-500 truncate mt-0.5">{vo.desc}</div>
+                    <div className="text-[10px] text-text-muted truncate mt-0.5">{vo.desc}</div>
                   </div>
                   {selectedVoice === vo.id && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] shadow-sm shadow-[#c5a059]" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-text-accent shadow-sm shadow-text-accent" />
                   )}
                 </div>
               ))}
@@ -1334,13 +1360,13 @@ export default function App() {
           </section>
 
           {/* Mood Tone and Speed Settings */}
-          <section id="section_artistic_tone" className="flex flex-col gap-5 bg-[#111] p-5 border border-white/5">
+          <section id="section_artistic_tone" className="flex flex-col gap-5 bg-bg-input p-5 border border-border-color">
             <div>
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-mono flex items-center gap-1">
+              <h3 className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono flex items-center gap-1">
                 <span>02.</span>
                 <span>Artistic Tone / 朗诵情感基调</span>
               </h3>
-              <p className="text-[10px] text-stone-500 mt-1">
+              <p className="text-[10px] text-text-muted mt-1">
                 指导 Gemini 吟诵时应表现出的语气艺术和情感底蕴。
               </p>
             </div>
@@ -1354,8 +1380,8 @@ export default function App() {
                   onClick={() => setSelectedStyle(style.id)}
                   className={`p-2 text-left border rounded-xs transition-all flex flex-col justify-between h-14 cursor-pointer ${
                     selectedStyle === style.id
-                      ? "border-[#c5a059] bg-[#c5a059]/5 text-white"
-                      : "border-white/5 bg-[#141414] text-gray-400 hover:text-white hover:border-white/10"
+                      ? "border-text-accent bg-text-accent/5 text-text-primary"
+                      : "border-border-color bg-bg-card-sub text-text-muted hover:text-text-primary hover:border-border-color-strong"
                   }`}
                 >
                   <span className="text-xs font-semibold">{style.label}</span>
@@ -1367,8 +1393,8 @@ export default function App() {
             </div>
 
             {/* Speed setup */}
-            <div className="border-t border-white/5 pt-4">
-              <h4 className="text-[9px] uppercase tracking-widest text-[#c5a059] font-mono mb-2">
+            <div className="border-t border-border-color pt-4">
+              <h4 className="text-[9px] uppercase tracking-widest text-text-accent font-mono mb-2">
                 Speed Rhythm / 吟篇节奏
               </h4>
               <div className="grid grid-cols-3 gap-2">
@@ -1379,8 +1405,8 @@ export default function App() {
                     onClick={() => setSelectedSpeed(sp.id)}
                     className={`py-1.5 px-2 text-center text-[10px] border transition-all cursor-pointer ${
                       selectedSpeed === sp.id
-                        ? "border-[#c5a059] bg-[#c5a059]/10 text-white font-medium"
-                        : "border-white/5 bg-[#141414] text-gray-500 hover:text-white"
+                        ? "border-text-accent bg-text-accent/10 text-text-primary font-medium"
+                        : "border-border-color bg-bg-card-sub text-text-muted hover:text-text-primary"
                     }`}
                   >
                     <div>{sp.label.split(" ")[0]}</div>
@@ -1393,39 +1419,39 @@ export default function App() {
 
           {/* Premium Playback Console */}
           <section id="section_playback_console" className="mt-auto">
-            <div className="bg-[#121212] p-5 border border-white/10 relative overflow-hidden shadow-2xl shadow-black/40">
+            <div className="bg-bg-panel p-5 border border-border-color-strong relative overflow-hidden shadow-2xl shadow-black/40">
               
               {/* Decorative side accent */}
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[#c5a059]/2 blur-[35px] pointer-events-none" />
+              <div className="absolute top-0 right-0 w-24 h-24 bg-text-accent/2 blur-[35px] pointer-events-none" />
 
               <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest flex items-center gap-1 select-none">
-                  <span className="inline-block w-2 h-2 rounded-full bg-[#c5a059] playing-wave-item" />
+                <span className="text-[10px] font-mono text-text-muted uppercase tracking-widest flex items-center gap-1 select-none">
+                  <span className="inline-block w-2 h-2 rounded-full bg-text-accent playing-wave-item" />
                   Live Preview Console
                 </span>
-                <span className="text-[9px] font-mono text-[#c5a059] bg-[#c5a059]/10 border border-[#c5a059]/20 px-1.5 py-0.5 rounded-sm">
+                <span className="text-[9px] font-mono text-text-accent bg-text-accent/10 border border-text-accent/20 px-1.5 py-0.5 rounded-sm">
                   24KHZ / WAV
                 </span>
               </div>
 
               {/* Status or Details for Current Track */}
-              <div className="mb-4 bg-black/40 p-3 border border-white/5 text-stone-400">
-                {currentAudio ? (
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-white font-serif line-clamp-1 italic">
-                      "{currentAudio.text}"
-                    </span>
-                    <div className="flex items-center gap-2 mt-1 text-[9px] tracking-wider text-gray-500 font-mono">
-                      <span>VOICE: {getVoiceName(currentAudio.voice).split(" ")[0]}</span>
-                      <span>•</span>
-                      <span>TONE: {getStyleLabel(currentAudio.style)}</span>
-                      <span>•</span>
-                      <span>LEN: {currentAudio.textLength}字</span>
+              <div className="mb-4 bg-bg-card-sub p-3 border border-border-color text-text-secondary">
+                  {currentAudio ? (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-text-primary font-serif line-clamp-1 italic">
+                        "{currentAudio.text}"
+                      </span>
+                      <div className="flex items-center gap-2 mt-1 text-[9px] tracking-wider text-text-muted font-mono">
+                        <span>VOICE: {getVoiceName(currentAudio.voice).split(" ")[0]}</span>
+                        <span>•</span>
+                        <span>TONE: {getStyleLabel(currentAudio.style)}</span>
+                        <span>•</span>
+                        <span>LEN: {currentAudio.textLength}字</span>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-2">
-                    <p className="text-xs text-gray-500">
+                  ) : (
+                    <div className="text-center py-2">
+                      <p className="text-xs text-text-muted">
                       尚未点击生成。请载入经典或录入自创手稿，点击下方的 <strong>“唤醒朗诵大师”</strong>。
                     </p>
                   </div>
@@ -1433,15 +1459,15 @@ export default function App() {
               </div>
               
               {/* Luxury Bar Visualizer */}
-              <div className="flex items-end justify-between gap-[3px] h-14 mb-4 px-2 select-none border-b border-white/5 pb-2">
+              <div className="flex items-end justify-between gap-[3px] h-14 mb-4 px-2 select-none border-b border-border-color pb-2">
                 {barHeights.map((height, idx) => (
                   <div 
                     key={idx}
                     style={{ height: `${height}%` }}
                     className={`flex-1 transition-all duration-150 rounded-t-sm ${
                       isPlaying 
-                        ? "bg-gradient-to-t from-[#8e6e3c] to-[#c5a059]" 
-                        : "bg-stone-800"
+                        ? "bg-gradient-to-t from-text-accent to-text-accent/80" 
+                        : "bg-border-color-strong"
                     }`}
                   />
                 ))}
@@ -1455,40 +1481,40 @@ export default function App() {
                   onClick={handlePlayPause}
                   className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all ${
                     !currentAudio 
-                      ? "border-neutral-800 text-neutral-600 bg-neutral-900/50 cursor-not-allowed" 
-                      : "border-[#c5a059] text-white bg-[#c5a059]/10 hover:bg-[#c5a059]/20 cursor-pointer active:scale-95"
+                      ? "border-border-color text-text-muted bg-bg-card-sub/50 cursor-not-allowed" 
+                      : "border-text-accent text-text-primary bg-text-accent/10 hover:bg-text-accent/20 cursor-pointer active:scale-95"
                   }`}
                   title={isPlaying ? "暂停" : "开始播放"}
                 >
                   {isPlaying ? (
-                    <Pause className="w-5 h-5 text-[#c5a059] fill-[#c5a059]" />
+                    <Pause className="w-5 h-5 text-text-accent fill-text-accent" />
                   ) : (
-                    <Play className="w-5 h-5 text-[#c5a059] fill-[#c5a059] translate-x-0.5" />
+                    <Play className="w-5 h-5 text-text-accent fill-text-accent translate-x-0.5" />
                   )}
                 </button>
 
                 {/* Progress bar info */}
                 <div className="flex-1">
-                  <div className="flex justify-between items-center text-[10px] text-gray-500 mb-1 font-mono">
+                  <div className="flex justify-between items-center text-[10px] text-text-muted mb-1 font-mono">
                     <span>{formatTime(currentTime)}</span>
                     <span>{currentAudio ? formatTime(currentAudio.duration) : "00:00"}</span>
                   </div>
-                  <div className="h-1 bg-white/5 relative rounded-full overflow-hidden">
+                  <div className="h-1 bg-bg-card-sub relative rounded-full overflow-hidden">
                     <div 
                       style={{ 
                         width: `${currentAudio ? (currentTime / currentAudio.duration) * 100 : 0}%` 
                       }} 
-                      className="absolute left-0 top-0 h-full bg-[#c5a059] rounded-full transition-all duration-100"
+                      className="absolute left-0 top-0 h-full bg-text-accent rounded-full transition-all duration-100"
                     />
                   </div>
                 </div>
 
                 {/* Volume slider */}
-                <div className="flex items-center gap-1.5 bg-[#0a0a0a] px-2 py-1 rounded-sm border border-white/5">
+                <div className="flex items-center gap-1.5 bg-bg-card-sub px-2 py-1 rounded-sm border border-border-color">
                   <button 
                     onClick={toggleMute}
                     disabled={!currentAudio}
-                    className="text-gray-500 hover:text-white cursor-pointer disabled:cursor-not-allowed"
+                    className="text-text-muted hover:text-text-primary cursor-pointer disabled:cursor-not-allowed"
                   >
                     {isMuted ? (
                       <VolumeX className="w-3.5 h-3.5 text-red-400" />
@@ -1504,7 +1530,7 @@ export default function App() {
                     disabled={!currentAudio}
                     value={volume}
                     onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                    className="w-12 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-[#c5a059] disabled:opacity-40"
+                    className="w-12 h-1 bg-bg-input rounded-lg appearance-none cursor-pointer accent-text-accent disabled:opacity-40"
                   />
                 </div>
               </div>
@@ -1518,7 +1544,7 @@ export default function App() {
               id="btn_download_wav"
               disabled={!currentAudio}
               onClick={() => handleDownload(currentAudio!)}
-              className="py-3 bg-neutral-900 border border-white/10 hover:border-[#c5a059]/40 text-[10px] uppercase tracking-widest text-[#d4d4d4] hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-30 disabled:hover:border-white/10 disabled:cursor-not-allowed"
+              className="py-3 bg-bg-input border border-border-color hover:border-text-accent/40 text-[10px] uppercase tracking-widest text-text-secondary hover:text-text-primary transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-30 disabled:hover:border-border-color disabled:cursor-not-allowed"
             >
               <Download className="w-3.5 h-3.5" />
               WAV Export
@@ -1533,7 +1559,7 @@ export default function App() {
                   alert("生成后可一键复制文本分享。");
                 }
               }}
-              className="py-3 bg-neutral-900 border border-white/10 hover:border-[#c5a059]/40 text-[10px] uppercase tracking-widest text-[#d4d4d4] hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="py-3 bg-bg-input border border-border-color hover:border-text-accent/40 text-[10px] uppercase tracking-widest text-text-secondary hover:text-text-primary transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               Share Text
             </button>
@@ -1543,20 +1569,20 @@ export default function App() {
       </main>
 
       {/* History Log Section - Under the folds */}
-      <section id="history_section" className="mx-4 md:mx-12 my-8 p-6 bg-[#0c0c0c] border border-white/5">
-        <div className="flex justify-between items-center mb-5 border-b border-white/5 pb-3">
+      <section id="history_section" className="mx-4 md:mx-12 my-8 p-6 bg-bg-panel border border-border-color">
+        <div className="flex justify-between items-center mb-5 border-b border-border-color pb-3">
           <div>
-            <h3 className="text-sm tracking-widest uppercase font-serif text-white font-medium flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-[#c5a059]" />
+            <h3 className="text-sm tracking-widest uppercase font-serif text-text-primary font-medium flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-text-accent" />
               吟诵成卷 · 本地生成历史 (Session History)
             </h3>
-            <p className="text-xs text-stone-500 mt-1">记录您在此浏览器会话中成功渲染的每一篇有声艺术手卷</p>
+            <p className="text-xs text-text-muted mt-1">记录您在此浏览器会话中成功渲染的每一篇有声艺术手卷</p>
           </div>
-          <span className="text-xs text-[#c5a059] font-mono">{history.length} 篇手卷</span>
+          <span className="text-xs text-text-accent font-mono">{history.length} 篇手卷</span>
         </div>
 
         {history.length === 0 ? (
-          <div className="text-center py-10 text-gray-600 bg-black/20 border border-dashed border-white/5">
+          <div className="text-center py-10 text-text-muted bg-bg-card-sub/20 border border-dashed border-border-color">
             <BookOpen className="w-8 h-8 text-stone-700 mx-auto mb-2.5" />
             <p className="text-xs">
               暂无历史生成记录。快录入或选择一首诗作，点击“唤醒朗诵大师”！
@@ -1571,20 +1597,20 @@ export default function App() {
               return (
                 <div 
                   key={session.id}
-                  className={`p-5 bg-black/40 border transition-all flex flex-col gap-3 ${
-                    isSelected ? "border-[#c5a059] bg-[#c5a059]/3" : "border-white/5 hover:border-white/10"
+                  className={`p-5 bg-bg-card-sub border transition-all flex flex-col gap-3 ${
+                    isSelected ? "border-text-accent bg-text-accent/3" : "border-border-color hover:border-border-color-strong"
                   }`}
                 >
                   {/* Row Header */}
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-gray-500 font-mono">
+                      <span className="text-[10px] text-text-muted font-mono">
                         {session.timestamp.toLocaleTimeString()}
                       </span>
-                      <span className="bg-[#121212] px-2 py-0.5 rounded-xs border border-white/5 text-[10px] text-[#c5a059] font-mono">
+                      <span className="bg-bg-input px-2 py-0.5 rounded-xs border border-border-color text-[10px] text-text-accent font-mono">
                         {session.isGroup ? `连读合集 · ${session.chunks.length} 折` : "单篇朗诵"}
                       </span>
-                      <span className="bg-white/5 px-2 py-0.5 rounded-xs border border-white/5 text-[10px] text-stone-400 font-mono">
+                      <span className="bg-bg-card-sub px-2 py-0.5 rounded-xs border border-border-color text-[10px] text-text-secondary font-mono">
                         {getVoiceName(session.voice).split(" ")[0]} · {getStyleLabel(session.style)}
                       </span>
                     </div>
@@ -1595,7 +1621,7 @@ export default function App() {
                           <button
                             onClick={() => mergeAndDownloadHistorySession(session)}
                             disabled={isHistoryMerging[session.id]}
-                            className="px-3 py-1.5 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-500/30 text-[10px] uppercase font-bold tracking-wider cursor-pointer flex items-center gap-1 disabled:opacity-50 transition-colors"
+                            className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 text-[10px] uppercase font-bold tracking-wider cursor-pointer flex items-center gap-1 disabled:opacity-50 transition-colors"
                           >
                             <Download className="w-3 h-3" />
                             {isHistoryMerging[session.id] ? "正在合并..." : "合集下载"}
@@ -1603,7 +1629,7 @@ export default function App() {
                           
                           <button
                             onClick={() => toggleSessionExpand(session.id)}
-                            className="px-3 py-1.5 bg-[#121212] hover:bg-white/10 text-stone-300 border border-white/5 text-[10px] cursor-pointer transition-colors"
+                            className="px-3 py-1.5 bg-bg-input hover:bg-bg-card-sub text-text-secondary border border-border-color text-[10px] cursor-pointer transition-colors"
                           >
                             {isExpanded ? "收起分卷 ▴" : "展开分卷 ▾"}
                           </button>
@@ -1615,13 +1641,13 @@ export default function App() {
                               setCurrentAudio(session.chunks[0]);
                               setIsPlaying(true);
                             }}
-                            className="px-3 py-1.5 bg-[#121212] hover:bg-[#c5a059] hover:text-black transition-all border border-white/5 text-[10px] uppercase font-bold tracking-wider cursor-pointer"
+                            className="px-3 py-1.5 bg-bg-input hover:bg-text-accent hover:text-bg-panel transition-all border border-border-color text-[10px] uppercase font-bold tracking-wider cursor-pointer"
                           >
                             点击播放
                           </button>
                           <button
                             onClick={() => handleDownload(session.chunks[0])}
-                            className="p-1.5 px-2.5 border border-white/10 hover:border-[#c5a059] text-gray-400 hover:text-white cursor-pointer"
+                            className="p-1.5 px-2.5 border border-border-color-strong hover:border-text-accent text-text-muted hover:text-text-primary cursor-pointer"
                             title="导出 WAV 音频"
                           >
                             <Download className="w-3.5 h-3.5" />
@@ -1632,12 +1658,12 @@ export default function App() {
                   </div>
                   
                   {/* Text Preview */}
-                  <p className="text-xs font-serif text-stone-300 leading-relaxed italic line-clamp-1 border-l-2 border-[#c5a059]/30 pl-3 py-0.5">
+                  <p className="text-xs font-serif text-text-secondary leading-relaxed italic line-clamp-1 border-l-2 border-text-accent/30 pl-3 py-0.5">
                     "{session.text.replace(/\n/g, " ")}"
                   </p>
                   
                   {/* Row Footer Metrics */}
-                  <div className="flex flex-wrap items-center justify-between text-[10px] text-gray-500 font-mono border-t border-white/5 pt-2 mt-1 gap-2">
+                  <div className="flex flex-wrap items-center justify-between text-[10px] text-text-muted font-mono border-t border-border-color pt-2 mt-1 gap-2">
                     <div>
                       时长: {formatTime(session.duration)} • 字数: {session.textLength}
                     </div>
@@ -1653,31 +1679,31 @@ export default function App() {
                   
                   {/* Chunks List (Expanded) */}
                   {session.isGroup && isExpanded && (
-                    <div className="mt-3 pl-4 border-l border-white/10 flex flex-col gap-2">
-                      <div className="text-[10px] text-stone-500 font-mono mb-1 uppercase tracking-wider">分卷明细 (Scroll Chunks Detail)</div>
+                    <div className="mt-3 pl-4 border-l border-border-color-strong flex flex-col gap-2">
+                      <div className="text-[10px] text-text-muted font-mono mb-1 uppercase tracking-wider">分卷明细 (Scroll Chunks Detail)</div>
                       {session.chunks.map((chunk, idx) => {
                         const isChunkSelected = currentAudio?.id === chunk.id;
                         
                         return (
                           <div 
                             key={chunk.id}
-                            className={`p-3 bg-black/20 border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition-colors ${
-                              isChunkSelected ? "border-[#c5a059]/50 bg-[#c5a059]/2" : "border-white/5 hover:border-white/10"
+                            className={`p-3 bg-bg-input/20 border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition-colors ${
+                              isChunkSelected ? "border-text-accent/50 bg-text-accent/2" : "border-border-color hover:border-border-color-strong"
                             }`}
                           >
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[9px] text-[#c5a059] font-mono font-bold">第 {idx + 1} 折</span>
-                                <span className="text-[9px] text-stone-500 font-mono">时长: {formatTime(chunk.duration)} • 字数: {chunk.textLength}</span>
+                                <span className="text-[9px] text-text-accent font-mono font-bold">第 {idx + 1} 折</span>
+                                <span className="text-[9px] text-text-muted font-mono">时长: {formatTime(chunk.duration)} • 字数: {chunk.textLength}</span>
                               </div>
-                              <p className="text-[11px] font-serif text-stone-400 line-clamp-1 italic">
+                              <p className="text-[11px] font-serif text-text-secondary line-clamp-1 italic">
                                 "{chunk.text}"
                               </p>
                             </div>
                             
                             <div className="flex items-center gap-2 self-end sm:self-auto">
                               {chunk.elapsedTimeMs !== undefined && (
-                                <span className="text-[9px] text-stone-600 font-mono mr-2">
+                                <span className="text-[9px] text-text-muted font-mono mr-2">
                                   {chunk.elapsedTimeMs}ms • {chunk.totalTokens}T
                                 </span>
                               )}
@@ -1686,13 +1712,13 @@ export default function App() {
                                   setCurrentAudio(chunk);
                                   setIsPlaying(true);
                                 }}
-                                className="px-2.5 py-1 bg-[#121212] hover:bg-[#c5a059] hover:text-black transition-all border border-white/5 text-[9px] uppercase font-bold tracking-wider cursor-pointer"
+                                className="px-2.5 py-1 bg-bg-input hover:bg-text-accent hover:text-bg-panel transition-all border border-border-color text-[9px] uppercase font-bold tracking-wider cursor-pointer"
                               >
                                 播放此折
                               </button>
                               <button
                                 onClick={() => handleDownload(chunk)}
-                                className="p-1 px-2 border border-white/10 hover:border-[#c5a059] text-gray-400 hover:text-white cursor-pointer"
+                                className="p-1 px-2 border border-border-color-strong hover:border-text-accent text-text-muted hover:text-text-primary cursor-pointer"
                                 title="导出 WAV 音频"
                               >
                                 <Download className="w-3 h-3" />
@@ -1711,9 +1737,9 @@ export default function App() {
       </section>
 
       {/* Elegant Footer Area */}
-      <footer id="app_footer" className="px-6 md:px-12 py-5 border-t border-white/5 bg-[#090909] text-[10px] text-gray-600 font-mono flex flex-col sm:flex-row justify-between items-center gap-4">
+      <footer id="app_footer" className="px-6 md:px-12 py-5 border-t border-border-color bg-bg-header text-[10px] text-text-muted font-mono flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex flex-wrap gap-4 md:gap-8 justify-center sm:justify-start">
-          <span className="uppercase tracking-widest text-[#c5a059]/80 font-semibold">• Model: Gemini 3.1 TTS High-Fidelity Preview</span>
+          <span className="uppercase tracking-widest text-text-accent/80 font-semibold">• Model: Gemini 3.1 TTS High-Fidelity Preview</span>
           <span className="uppercase tracking-widest">• Studio Rendering: Enabled</span>
           <span className="uppercase tracking-widest">• Sample Rate: 24,000Hz PCM-WAV</span>
         </div>
@@ -1853,7 +1879,7 @@ export default function App() {
                   }
                 }}
                 disabled={isSavingSettings}
-                className="px-5 py-2 bg-[#c5a059] text-black font-semibold hover:bg-[#d4b069] transition-all disabled:opacity-50 text-xs cursor-pointer animate-pulse-subtle"
+                className="px-5 py-2 bg-text-accent text-bg-panel font-semibold hover:opacity-90 transition-all disabled:opacity-50 text-xs cursor-pointer animate-pulse-subtle"
               >
                 {isSavingSettings ? "保存中..." : "确认保存"}
               </button>
