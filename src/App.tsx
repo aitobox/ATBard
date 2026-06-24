@@ -308,8 +308,9 @@ export default function App() {
   // System latency state (mock realistic interactive display)
   const [latency, setLatency] = useState<number>(42);
 
-  // Settings Modal States
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  // Active View & Alert States
+  const [currentView, setCurrentView] = useState<"studio" | "history" | "settings">("studio");
+  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [apiType, setApiType] = useState<"official" | "new_api">("official");
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [newApiBaseUrl, setNewApiBaseUrl] = useState("http://192.168.100.170:3000/v1");
@@ -951,69 +952,133 @@ export default function App() {
   };
 
   return (
-    <div id="app_container" className="w-full min-h-screen bg-bg-app text-text-secondary font-sans flex flex-col justify-between overflow-x-hidden antialiased selection:bg-text-accent selection:text-bg-panel">
+    <div id="app_container" className="w-full h-screen bg-bg-app text-text-secondary font-sans flex overflow-hidden antialiased selection:bg-text-accent selection:text-bg-panel">
       
-      {/* Header section */}
-      <nav id="navbar" className="flex flex-col md:flex-row justify-between items-center px-6 md:px-12 py-5 border-b border-border-color bg-bg-header backdrop-blur-md sticky top-0 z-50 gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-tr from-[#c5a059] to-[#8e6e3c] rounded-sm flex items-center justify-center shadow-lg shadow-[#c5a059]/10">
-            <Music4 className="w-4 h-4 text-black" />
+      {/* Left Navigation Sidebar */}
+      <aside className="w-64 flex-shrink-0 bg-bg-header border-r border-border-color h-full flex flex-col justify-between p-6 select-none">
+        <div className="flex flex-col gap-6">
+          {/* Brand Header */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-tr from-[#c5a059] to-[#8e6e3c] rounded-sm flex items-center justify-center shadow-lg shadow-[#c5a059]/10">
+              <Music4 className="w-4 h-4 text-black" />
+            </div>
+            <div>
+              <span className="text-xl font-light tracking-[0.25em] uppercase text-text-primary font-serif">
+                ATBard <span className="text-xs align-super opacity-60 text-text-accent font-mono leading-none">3.1</span>
+              </span>
+              <p className="text-[9px] text-text-accent/60 tracking-widest uppercase font-mono mt-0.5">Gemini TTS Engine</p>
+            </div>
           </div>
-          <div>
-            <span className="text-xl font-light tracking-[0.25em] uppercase text-text-primary font-serif">
-              ATBard <span className="text-xs align-super opacity-60 text-text-accent font-mono leading-none">3.1</span>
-            </span>
-            <p className="text-[9px] text-text-accent/60 tracking-widest uppercase font-mono mt-0.5">Gemini High-Fidelity TTS Engine</p>
-          </div>
-        </div>
-        
 
-        
-        <div className="hidden lg:flex items-center gap-6 text-[11px] uppercase tracking-widest text-text-muted font-mono">
-          <span className="text-text-primary hover:text-text-accent transition-colors cursor-pointer">● Reciter</span>
-          <a href="#history_section" className="hover:text-text-accent transition-colors">History</a>
-          <span className="opacity-40 select-none">|</span>
-          <button 
-            onClick={() => setShowPromptInspector(!showPromptInspector)} 
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-bg-input border border-text-accent/20 hover:border-text-accent/60 text-text-accent cursor-pointer transition-colors"
-          >
-            <Code className="w-3 h-3" />
-            <span>Prompt AI</span>
-          </button>
-          <span className="opacity-40 select-none">|</span>
-          <button 
-            onClick={() => setShowSettingsModal(true)} 
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-bg-input border border-border-color-strong hover:border-text-accent/40 text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-          >
-            <Sliders className="w-3 h-3" />
-            <span>Settings</span>
-          </button>
-          <span className="opacity-40 select-none">|</span>
-          <button 
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
-            className="flex items-center justify-center p-1.5 rounded-xs bg-bg-input border border-border-color-strong text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+          {/* Navigation Links */}
+          <nav className="flex flex-col gap-1.5 mt-4">
+            <button
+              onClick={() => setCurrentView("studio")}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xs text-xs font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                currentView === "studio"
+                  ? "bg-text-accent/10 border-l-2 border-text-accent text-text-primary font-semibold"
+                  : "text-text-secondary hover:bg-bg-panel hover:text-text-primary border-l-2 border-transparent"
+              }`}
+            >
+              <Music4 className="w-4 h-4 text-text-accent" />
+              <span>工作台 / Studio</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentView("history")}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xs text-xs font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                currentView === "history"
+                  ? "bg-text-accent/10 border-l-2 border-text-accent text-text-primary font-semibold"
+                  : "text-text-secondary hover:bg-bg-panel hover:text-text-primary border-l-2 border-transparent"
+              }`}
+            >
+              <Clock className="w-4 h-4 text-text-accent" />
+              <span>生成历史 / History</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentView("settings")}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xs text-xs font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                currentView === "settings"
+                  ? "bg-text-accent/10 border-l-2 border-text-accent text-text-primary font-semibold"
+                  : "text-text-secondary hover:bg-bg-panel hover:text-text-primary border-l-2 border-transparent"
+              }`}
+            >
+              <Sliders className="w-4 h-4 text-text-accent" />
+              <span>渠道配置 / Settings</span>
+            </button>
+
+            {/* Utility Divider */}
+            <div className="h-px bg-border-color my-3" />
+
+            <button
+              onClick={() => {
+                setCurrentView("studio");
+                setShowPromptInspector(!showPromptInspector);
+              }}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xs text-[11px] font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                showPromptInspector && currentView === "studio"
+                  ? "text-text-accent font-semibold"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              <Code className="w-4 h-4" />
+              <span>Prompt AI 机制</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* Sidebar Footer */}
+        <div className="flex flex-col gap-4 border-t border-border-color pt-5">
+          <div className="flex items-center gap-2.5 text-[10px] font-mono uppercase tracking-wider px-2">
+            <span className={`w-2 h-2 rounded-full ${apiHasKey ? "bg-green-500" : "bg-amber-500 animate-pulse"}`} />
+            <span className="text-text-muted">当前渠道:</span>
+            <span className="text-text-secondary font-bold">
+              {apiType === "official" ? "官方 Gemini" : "NewAPI"}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xs bg-bg-input border border-border-color-strong text-text-secondary hover:text-text-primary cursor-pointer transition-all duration-200 text-xs font-mono"
             title={theme === "dark" ? "切换至浅色模式" : "切换至深色模式"}
           >
-            {theme === "dark" ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-400" />}
+            {theme === "dark" ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-400" />
+                <span>浅色模式</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-indigo-400" />
+                <span>深色模式</span>
+              </>
+            )}
           </button>
         </div>
-      </nav>
+      </aside>
 
-      {/* Warning if no Gemini Key configured */}
-      {!apiHasKey && (
-        <div id="key_alert" className="mx-6 md:mx-12 mt-4 alert-box p-4 bg-amber-950/20 border border-amber-500/30 text-amber-200 text-xs flex gap-3 items-start animate-pulse">
-          <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-500 mt-0.5" />
-          <div className="flex-1">
-            <strong className="font-bold">提醒：尚未配置核心 GEMINI_API_KEY。</strong>
-            <p className="mt-1 text-amber-300/80 leading-relaxed">
-              当前应用未检测到全局 Gemini 秘钥环境。您可以点击页面右上角的 <strong className="text-white">Settings &gt; Secrets</strong>，并在其中添加键名为 <code className="bg-black/30 px-1 py-0.5 text-orange-200 rounded-sm">GEMINI_API_KEY</code> 的凭证，即可正式解锁 Gemini 3.1 毫秒级极速 TTS 音频合成渲染服务。
-            </p>
+      {/* Main Workspace Frame */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        
+        {/* Warning if no Gemini Key configured (positioned in the workspace) */}
+        {!apiHasKey && (
+          <div id="key_alert" className="mx-6 mt-4 p-4 bg-amber-950/20 border border-amber-500/30 text-amber-200 text-xs flex gap-3 items-start animate-pulse">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-500 mt-0.5" />
+            <div className="flex-1">
+              <strong className="font-bold">提醒：尚未配置核心 GEMINI_API_KEY。</strong>
+              <p className="mt-1 text-amber-300/80 leading-relaxed">
+                当前应用未检测到全局 Gemini 秘钥环境。您可以点击左侧导航栏的 <strong className="text-white">渠道配置 / Settings</strong>，并在其中添加您的 API 凭证，即可正式解锁 Gemini 3.1 TTS 音频合成服务。
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col xl:flex-row px-4 md:px-12 py-6 md:py-8 gap-8 md:gap-10">
+        {/* Scrollable Content Pane */}
+        <div className="flex-1 overflow-y-auto">
+          
+          {currentView === "studio" && (
+            <main className="flex-1 flex flex-col xl:flex-row px-6 py-6 gap-8 md:gap-10">
         
         {/* Left Side: Textarea & Presets */}
         <div id="main_editor_panel" className="flex-1 flex flex-col gap-6">
@@ -1586,9 +1651,10 @@ export default function App() {
 
         </div>
       </main>
+      )}
 
-      {/* History Log Section - Under the folds */}
-      <section id="history_section" className="mx-4 md:mx-12 my-8 p-6 bg-bg-panel border border-border-color">
+      {currentView === "history" && (
+        <section id="history_section" className="mx-6 my-6 p-6 bg-bg-panel border border-border-color">
         <div className="flex justify-between items-center mb-5 border-b border-border-color pb-3">
           <div>
             <h3 className="text-sm tracking-widest uppercase font-serif text-text-primary font-medium flex items-center gap-1.5">
@@ -1754,169 +1820,176 @@ export default function App() {
           </div>
         )}
       </section>
+      )}
 
-      {/* Elegant Footer Area */}
-      <footer id="app_footer" className="px-6 md:px-12 py-5 border-t border-border-color bg-bg-header text-[10px] text-text-muted font-mono flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="flex flex-wrap gap-4 md:gap-8 justify-center sm:justify-start">
-          <span className="uppercase tracking-widest text-text-accent/80 font-semibold">• Model: Gemini 3.1 TTS High-Fidelity Preview</span>
-          <span className="uppercase tracking-widest">• Studio Rendering: Enabled</span>
-          <span className="uppercase tracking-widest">• Sample Rate: 24,000Hz PCM-WAV</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-500/80 animate-pulse" />
-          <span className="uppercase tracking-widest">Network Latency: {latency}ms</span>
-        </div>
-      </footer>
-
-      {showSettingsModal && (
-        <div id="settings_overlay" className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-bg-panel border border-border-color-strong w-full max-w-md p-6 rounded-sm shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-xl font-serif italic text-text-primary flex items-center gap-2 border-b border-border-color pb-3">
-              <Sliders className="w-5 h-5 text-text-accent" />
-              API Settings / 配置管理
-            </h2>
-            
-            <div className="mt-4 flex flex-col gap-4 text-xs max-h-[60vh] overflow-y-auto pr-1">
-              {/* Model Name Settings */}
-              <div>
-                <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">Model Name / 模型名称</label>
-                <input
-                  type="text"
-                  placeholder="e.g. gemini-3.1-flash-tts"
-                  className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
-                  value={modelName}
-                  onChange={(e) => setModelName(e.target.value)}
-                />
-                <span className="text-[10px] text-text-muted mt-1 block">配置调用的 Gemini TTS 模型标识。</span>
+      {currentView === "settings" && (
+        <div className="max-w-2xl mx-auto my-8 p-8 bg-bg-panel border border-border-color shadow-2xl rounded-sm animate-in fade-in zoom-in-95 duration-200">
+          <h2 className="text-xl font-serif italic text-text-primary flex items-center gap-2 border-b border-border-color pb-3 mb-6">
+            <Sliders className="w-5 h-5 text-text-accent" />
+            API Settings / 配置管理
+          </h2>
+          
+          <div className="flex flex-col gap-5 text-xs">
+            {/* Save Success Notice */}
+            {saveSuccess && (
+              <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 text-emerald-200 rounded-sm flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-500" />
+                <span>参数配置已成功保存并同步！</span>
               </div>
+            )}
 
-              {/* 1. API Provider Selector at the top */}
-              <div className="border-t border-border-color pt-3">
-                <label className="text-text-secondary block mb-1.5 uppercase tracking-wider font-mono font-bold">1. 启用渠道 / Active Provider</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setApiType("official")}
-                    className={`py-2 px-3 border transition-all text-center cursor-pointer text-xs ${
-                      apiType === "official"
-                        ? "border-text-accent bg-text-accent/10 text-text-primary font-medium"
-                        : "border-border-color bg-bg-input text-text-secondary hover:text-text-primary"
-                    }`}
-                  >
-                    Gemini 官方渠道
-                  </button>
-                  <button
-                    onClick={() => setApiType("new_api")}
-                    className={`py-2 px-3 border transition-all text-center cursor-pointer text-xs ${
-                      apiType === "new_api"
-                        ? "border-text-accent bg-text-accent/10 text-text-primary font-medium"
-                        : "border-border-color bg-bg-input text-text-secondary hover:text-text-primary"
-                    }`}
-                  >
-                    NewAPI 本地中转
-                  </button>
+            {/* Model Name Settings */}
+            <div>
+              <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">Model Name / 模型名称</label>
+              <input
+                type="text"
+                placeholder="e.g. gemini-3.1-flash-tts"
+                className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/45 font-mono"
+                value={modelName}
+                onChange={(e) => setModelName(e.target.value)}
+              />
+              <span className="text-[10px] text-text-muted mt-1 block">配置调用的 Gemini TTS 模型标识。</span>
+            </div>
+
+            {/* 1. API Provider Selector */}
+            <div className="border-t border-border-color pt-4">
+              <label className="text-text-secondary block mb-1.5 uppercase tracking-wider font-mono font-bold">1. 启用渠道 / Active Provider</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setApiType("official")}
+                  className={`py-2.5 px-3 border transition-all text-center cursor-pointer text-xs font-mono uppercase tracking-wider ${
+                    apiType === "official"
+                      ? "border-text-accent bg-text-accent/10 text-text-primary font-semibold"
+                      : "border-border-color bg-bg-input text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  Gemini 官方渠道
+                </button>
+                <button
+                  onClick={() => setApiType("new_api")}
+                  className={`py-2.5 px-3 border transition-all text-center cursor-pointer text-xs font-mono uppercase tracking-wider ${
+                    apiType === "new_api"
+                      ? "border-text-accent bg-text-accent/10 text-text-primary font-semibold"
+                      : "border-border-color bg-bg-input text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  NewAPI 本地中转
+                </button>
+              </div>
+              <span className="text-[10px] text-text-muted mt-1.5 block">选择系统当前默认使用的语音合成渠道服务。</span>
+            </div>
+
+            {/* 2. Dynamic credentials based on active provider */}
+            <div className="border-t border-border-color pt-4">
+              {apiType === "official" ? (
+                <div>
+                  <h3 className="text-[10px] font-bold text-text-accent uppercase tracking-wider mb-2.5 font-mono">2. Gemini 官方渠道参数配置</h3>
+                  <div>
+                    <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">GEMINI_API_KEY</label>
+                    <input
+                      type="password"
+                      placeholder="输入官方 Gemini API 秘钥..."
+                      className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/45 font-mono"
+                      value={geminiApiKey}
+                      onChange={(e) => setGeminiApiKey(e.target.value)}
+                    />
+                    <span className="text-[10px] text-text-muted mt-1 block">若为空，则默认使用系统环境变量中的 GEMINI_API_KEY</span>
+                  </div>
                 </div>
-                <span className="text-[10px] text-text-muted mt-1.5 block">选择系统当前默认使用的语音合成渠道服务。</span>
-              </div>
-
-              {/* 2. Dynamic Settings parameters based on Selected Provider */}
-              <div className="border-t border-border-color pt-3">
-                {apiType === "official" ? (
-                  /* Gemini Official Channel Settings */
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-[10px] font-bold text-text-accent uppercase tracking-wider mb-1 font-mono">2. NewAPI 中转渠道参数配置</h3>
                   <div>
-                    <h3 className="text-[10px] font-bold text-text-accent uppercase tracking-wider mb-2 font-mono">2. Gemini 官方渠道参数配置</h3>
-                    <div>
-                      <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">GEMINI_API_KEY</label>
-                      <input
-                        type="password"
-                        placeholder="输入官方 Gemini API 秘钥..."
-                        className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
-                        value={geminiApiKey}
-                        onChange={(e) => setGeminiApiKey(e.target.value)}
-                      />
-                      <span className="text-[10px] text-text-muted mt-1 block">若空，则默认使用环境变量中的 GEMINI_API_KEY</span>
-                    </div>
+                    <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">NewAPI Base URL</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. http://192.168.100.170:3000/v1"
+                      className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/45 font-mono"
+                      value={newApiBaseUrl}
+                      onChange={(e) => setNewApiBaseUrl(e.target.value)}
+                    />
+                    <span className="text-[10px] text-text-muted mt-1 block">本地中转站的 OpenAI 格式基础 URL。</span>
                   </div>
-                ) : (
-                  /* NewAPI Channel Settings */
                   <div>
-                    <h3 className="text-[10px] font-bold text-text-accent uppercase tracking-wider mb-2 font-mono">2. NewAPI 中转渠道参数配置</h3>
-                    <div className="flex flex-col gap-3">
-                      <div>
-                        <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">NewAPI Base URL</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. http://192.168.100.170:3000/v1"
-                          className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
-                          value={newApiBaseUrl}
-                          onChange={(e) => setNewApiBaseUrl(e.target.value)}
-                        />
-                        <span className="text-[10px] text-text-muted mt-1 block">本地中转站的 OpenAI 格式基础 URL。</span>
-                      </div>
-                      <div>
-                        <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">NewAPI Token / 访问令牌</label>
-                        <input
-                          type="password"
-                          placeholder="输入 NewAPI 访问令牌/秘钥..."
-                          className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
-                          value={newApiKey}
-                          onChange={(e) => setNewApiKey(e.target.value)}
-                        />
-                        <span className="text-[10px] text-text-muted mt-1 block">中转站分配的用户 API 令牌。</span>
-                      </div>
-                    </div>
+                    <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">NewAPI Token / 访问令牌</label>
+                    <input
+                      type="password"
+                      placeholder="输入 NewAPI 访问令牌/秘钥..."
+                      className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/45 font-mono"
+                      value={newApiKey}
+                      onChange={(e) => setNewApiKey(e.target.value)}
+                    />
+                    <span className="text-[10px] text-text-muted mt-1 block">中转站分配的用户 API 令牌。</span>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
+          </div>
 
-            <div className="mt-6 flex justify-end gap-3 border-t border-border-color pt-4">
-              <button
-                onClick={() => setShowSettingsModal(false)}
-                className="px-4 py-2 border border-text-accent/20 hover:border-text-accent/60 hover:bg-text-accent/5 text-text-accent transition-colors cursor-pointer text-xs"
-              >
-                取消
-              </button>
-              <button
-                onClick={async () => {
-                  setIsSavingSettings(true);
-                  try {
-                    const res = await fetch("/api/settings", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        api_type: apiType,
-                        gemini_api_key: geminiApiKey,
-                        new_api_base_url: newApiBaseUrl,
-                        new_api_key: newApiKey,
-                        model_name: modelName
-                      })
-                    });
-                    if (!res.ok) {
-                      const data = await res.json();
-                      throw new Error(data.error || "Failed to save settings");
-                    }
-                    
-                    const healthRes = await fetch("/api/health");
-                    const healthData = await healthRes.json();
-                    setApiHasKey(healthData.hasKey);
-                    
-                    setShowSettingsModal(false);
-                  } catch (err: any) {
-                    alert(err.message || "保存设置失败");
-                  } finally {
-                    setIsSavingSettings(false);
+          <div className="mt-8 flex justify-end gap-3 border-t border-border-color pt-5">
+            <button
+              onClick={() => setCurrentView("studio")}
+              className="px-4 py-2.5 border border-text-accent/20 hover:border-text-accent/60 hover:bg-text-accent/5 text-text-accent transition-colors cursor-pointer text-xs font-mono uppercase tracking-wider"
+            >
+              返回工作台
+            </button>
+            <button
+              onClick={async () => {
+                setIsSavingSettings(true);
+                try {
+                  const res = await fetch("/api/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      api_type: apiType,
+                      gemini_api_key: geminiApiKey,
+                      new_api_base_url: newApiBaseUrl,
+                      new_api_key: newApiKey,
+                      model_name: modelName
+                    })
+                  });
+                  if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || "Failed to save settings");
                   }
-                }}
-                disabled={isSavingSettings}
-                className="px-5 py-2 bg-text-accent text-bg-panel font-semibold hover:opacity-90 transition-all disabled:opacity-50 text-xs cursor-pointer animate-pulse-subtle"
-              >
-                {isSavingSettings ? "保存中..." : "确认保存"}
-              </button>
-            </div>
+                  
+                  const healthRes = await fetch("/api/health");
+                  const healthData = await healthRes.json();
+                  setApiHasKey(healthData.hasKey);
+                  
+                  setSaveSuccess(true);
+                  setTimeout(() => setSaveSuccess(false), 3000);
+                } catch (err: any) {
+                  alert(err.message || "保存设置失败");
+                } finally {
+                  setIsSavingSettings(false);
+                }
+              }}
+              disabled={isSavingSettings}
+              className="px-5 py-2.5 bg-text-accent text-bg-panel font-bold hover:opacity-95 transition-all disabled:opacity-50 text-xs cursor-pointer tracking-wider font-mono"
+            >
+              {isSavingSettings ? "保存中..." : "保存设置"}
+            </button>
           </div>
         </div>
       )}
-      
+
+        </div>
+
+        {/* Elegant Footer Area */}
+        <footer id="app_footer" className="px-6 py-4 border-t border-border-color bg-bg-header text-[10px] text-text-muted font-mono flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex flex-wrap gap-4 md:gap-8 justify-center sm:justify-start">
+            <span className="uppercase tracking-widest text-text-accent/80 font-semibold">• Model: {modelName}</span>
+            <span className="uppercase tracking-widest">• Studio Rendering: Enabled</span>
+            <span className="uppercase tracking-widest">• Sample Rate: 24,000Hz PCM-WAV</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500/80 animate-pulse" />
+            <span className="uppercase tracking-widest">Network Latency: {latency}ms</span>
+          </div>
+        </footer>
+
+      </div>
     </div>
   );
 }
