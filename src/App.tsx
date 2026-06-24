@@ -18,6 +18,7 @@ import {
   Code,
   Music4,
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   Sun
 } from "lucide-react";
@@ -310,6 +311,7 @@ export default function App() {
 
   // Active View & Alert States
   const [currentView, setCurrentView] = useState<"studio" | "history" | "settings">("studio");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [apiType, setApiType] = useState<"official" | "new_api">("official");
   const [geminiApiKey, setGeminiApiKey] = useState("");
@@ -955,106 +957,208 @@ export default function App() {
     <div id="app_container" className="w-full h-screen bg-bg-app text-text-secondary font-sans flex overflow-hidden antialiased selection:bg-text-accent selection:text-bg-panel">
       
       {/* Left Navigation Sidebar */}
-      <aside className="w-64 flex-shrink-0 bg-bg-header border-r border-border-color h-full flex flex-col justify-between p-6 select-none">
+      <aside className={`${isSidebarCollapsed ? "w-16 px-2" : "w-64 p-6"} flex-shrink-0 bg-bg-header border-r border-border-color h-full flex flex-col justify-between py-6 transition-all duration-300 select-none relative`}>
+        {/* Toggle Collapse Button */}
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -right-3 top-6 w-6 h-6 bg-bg-panel border border-border-color-strong rounded-full flex items-center justify-center cursor-pointer text-text-secondary hover:text-text-primary z-50 shadow-md transition-all hover:scale-105"
+          title={isSidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
+        >
+          {isSidebarCollapsed ? (
+            <ChevronRight className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronLeft className="w-3.5 h-3.5" />
+          )}
+        </button>
+
         <div className="flex flex-col gap-6">
           {/* Brand Header */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-tr from-[#c5a059] to-[#8e6e3c] rounded-sm flex items-center justify-center shadow-lg shadow-[#c5a059]/10">
-              <Music4 className="w-4 h-4 text-black" />
+          {!isSidebarCollapsed ? (
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-tr from-[#c5a059] to-[#8e6e3c] rounded-sm flex items-center justify-center shadow-lg shadow-[#c5a059]/10">
+                <Music4 className="w-4 h-4 text-black" />
+              </div>
+              <div>
+                <span className="text-xl font-light tracking-[0.25em] uppercase text-text-primary font-serif">
+                  ATBard <span className="text-xs align-super opacity-60 text-text-accent font-mono leading-none">3.1</span>
+                </span>
+                <p className="text-[9px] text-text-accent/60 tracking-widest uppercase font-mono mt-0.5">Gemini TTS Engine</p>
+              </div>
             </div>
-            <div>
-              <span className="text-xl font-light tracking-[0.25em] uppercase text-text-primary font-serif">
-                ATBard <span className="text-xs align-super opacity-60 text-text-accent font-mono leading-none">3.1</span>
-              </span>
-              <p className="text-[9px] text-text-accent/60 tracking-widest uppercase font-mono mt-0.5">Gemini TTS Engine</p>
+          ) : (
+            <div className="flex justify-center items-center">
+              <div className="w-9 h-9 bg-gradient-to-tr from-[#c5a059] to-[#8e6e3c] rounded-sm flex items-center justify-center shadow-lg shadow-[#c5a059]/10" title="ATBard 3.1">
+                <Music4 className="w-4.5 h-4.5 text-black" />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Navigation Links */}
           <nav className="flex flex-col gap-1.5 mt-4">
-            <button
-              onClick={() => setCurrentView("studio")}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xs text-xs font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                currentView === "studio"
-                  ? "bg-text-accent/10 border-l-2 border-text-accent text-text-primary font-semibold"
-                  : "text-text-secondary hover:bg-bg-panel hover:text-text-primary border-l-2 border-transparent"
-              }`}
-            >
-              <Music4 className="w-4 h-4 text-text-accent" />
-              <span>工作台 / Studio</span>
-            </button>
+            {!isSidebarCollapsed ? (
+              <>
+                <button
+                  onClick={() => setCurrentView("studio")}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xs text-xs font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    currentView === "studio"
+                      ? "bg-text-accent/10 border-l-2 border-text-accent text-text-primary font-semibold"
+                      : "text-text-secondary hover:bg-bg-panel hover:text-text-primary border-l-2 border-transparent"
+                  }`}
+                >
+                  <Music4 className="w-4 h-4 text-text-accent" />
+                  <span>工作台 / Studio</span>
+                </button>
 
-            <button
-              onClick={() => setCurrentView("history")}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xs text-xs font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                currentView === "history"
-                  ? "bg-text-accent/10 border-l-2 border-text-accent text-text-primary font-semibold"
-                  : "text-text-secondary hover:bg-bg-panel hover:text-text-primary border-l-2 border-transparent"
-              }`}
-            >
-              <Clock className="w-4 h-4 text-text-accent" />
-              <span>生成历史 / History</span>
-            </button>
+                <button
+                  onClick={() => setCurrentView("history")}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xs text-xs font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    currentView === "history"
+                      ? "bg-text-accent/10 border-l-2 border-text-accent text-text-primary font-semibold"
+                      : "text-text-secondary hover:bg-bg-panel hover:text-text-primary border-l-2 border-transparent"
+                  }`}
+                >
+                  <Clock className="w-4 h-4 text-text-accent" />
+                  <span>生成历史 / History</span>
+                </button>
 
-            <button
-              onClick={() => setCurrentView("settings")}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xs text-xs font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                currentView === "settings"
-                  ? "bg-text-accent/10 border-l-2 border-text-accent text-text-primary font-semibold"
-                  : "text-text-secondary hover:bg-bg-panel hover:text-text-primary border-l-2 border-transparent"
-              }`}
-            >
-              <Sliders className="w-4 h-4 text-text-accent" />
-              <span>渠道配置 / Settings</span>
-            </button>
+                <button
+                  onClick={() => setCurrentView("settings")}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xs text-xs font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    currentView === "settings"
+                      ? "bg-text-accent/10 border-l-2 border-text-accent text-text-primary font-semibold"
+                      : "text-text-secondary hover:bg-bg-panel hover:text-text-primary border-l-2 border-transparent"
+                  }`}
+                >
+                  <Sliders className="w-4 h-4 text-text-accent" />
+                  <span>渠道配置 / Settings</span>
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => setCurrentView("studio")}
+                  className={`flex justify-center items-center w-10 h-10 mx-auto rounded-xs transition-all duration-200 cursor-pointer ${
+                    currentView === "studio"
+                      ? "bg-text-accent/10 text-text-primary border-l-2 border-text-accent"
+                      : "text-text-secondary hover:bg-bg-panel hover:text-text-primary"
+                  }`}
+                  title="工作台 / Studio"
+                >
+                  <Music4 className="w-5 h-5 text-text-accent" />
+                </button>
+
+                <button
+                  onClick={() => setCurrentView("history")}
+                  className={`flex justify-center items-center w-10 h-10 mx-auto rounded-xs transition-all duration-200 cursor-pointer ${
+                    currentView === "history"
+                      ? "bg-text-accent/10 text-text-primary border-l-2 border-text-accent"
+                      : "text-text-secondary hover:bg-bg-panel hover:text-text-primary"
+                  }`}
+                  title="生成历史 / History"
+                >
+                  <Clock className="w-5 h-5 text-text-accent" />
+                </button>
+
+                <button
+                  onClick={() => setCurrentView("settings")}
+                  className={`flex justify-center items-center w-10 h-10 mx-auto rounded-xs transition-all duration-200 cursor-pointer ${
+                    currentView === "settings"
+                      ? "bg-text-accent/10 text-text-primary border-l-2 border-text-accent"
+                      : "text-text-secondary hover:bg-bg-panel hover:text-text-primary"
+                  }`}
+                  title="渠道配置 / Settings"
+                >
+                  <Sliders className="w-5 h-5 text-text-accent" />
+                </button>
+              </div>
+            )}
 
             {/* Utility Divider */}
             <div className="h-px bg-border-color my-3" />
 
-            <button
-              onClick={() => {
-                setCurrentView("studio");
-                setShowPromptInspector(!showPromptInspector);
-              }}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xs text-[11px] font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                showPromptInspector && currentView === "studio"
-                  ? "text-text-accent font-semibold"
-                  : "text-text-muted hover:text-text-secondary"
-              }`}
-            >
-              <Code className="w-4 h-4" />
-              <span>Prompt AI 机制</span>
-            </button>
+            {!isSidebarCollapsed ? (
+              <button
+                onClick={() => {
+                  setCurrentView("studio");
+                  setShowPromptInspector(!showPromptInspector);
+                }}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xs text-[11px] font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                  showPromptInspector && currentView === "studio"
+                    ? "text-text-accent font-semibold"
+                    : "text-text-muted hover:text-text-secondary"
+                }`}
+              >
+                <Code className="w-4 h-4" />
+                <span>Prompt AI 机制</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setCurrentView("studio");
+                  setShowPromptInspector(!showPromptInspector);
+                }}
+                className={`flex justify-center items-center w-10 h-10 mx-auto rounded-xs transition-all duration-200 cursor-pointer ${
+                  showPromptInspector && currentView === "studio"
+                    ? "text-text-accent font-semibold"
+                    : "text-text-muted hover:text-text-secondary"
+                }`}
+                title="Prompt AI 机制"
+              >
+                <Code className="w-5 h-5" />
+              </button>
+            )}
           </nav>
         </div>
 
         {/* Sidebar Footer */}
         <div className="flex flex-col gap-4 border-t border-border-color pt-5">
-          <div className="flex items-center gap-2.5 text-[10px] font-mono uppercase tracking-wider px-2">
-            <span className={`w-2 h-2 rounded-full ${apiHasKey ? "bg-green-500" : "bg-amber-500 animate-pulse"}`} />
-            <span className="text-text-muted">当前渠道:</span>
-            <span className="text-text-secondary font-bold">
-              {apiType === "official" ? "官方 Gemini" : "NewAPI"}
-            </span>
-          </div>
+          {!isSidebarCollapsed ? (
+            <>
+              <div className="flex items-center gap-2.5 text-[10px] font-mono uppercase tracking-wider px-2">
+                <span className={`w-2 h-2 rounded-full ${apiHasKey ? "bg-green-500" : "bg-amber-500 animate-pulse"}`} />
+                <span className="text-text-muted">当前渠道:</span>
+                <span className="text-text-secondary font-bold">
+                  {apiType === "official" ? "官方 Gemini" : "NewAPI"}
+                </span>
+              </div>
 
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xs bg-bg-input border border-border-color-strong text-text-secondary hover:text-text-primary cursor-pointer transition-all duration-200 text-xs font-mono"
-            title={theme === "dark" ? "切换至浅色模式" : "切换至深色模式"}
-          >
-            {theme === "dark" ? (
-              <>
-                <Sun className="w-4 h-4 text-amber-400" />
-                <span>浅色模式</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-4 h-4 text-indigo-400" />
-                <span>深色模式</span>
-              </>
-            )}
-          </button>
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xs bg-bg-input border border-border-color-strong text-text-secondary hover:text-text-primary cursor-pointer transition-all duration-200 text-xs font-mono"
+                title={theme === "dark" ? "切换至浅色模式" : "切换至深色模式"}
+              >
+                {theme === "dark" ? (
+                  <>
+                    <Sun className="w-4 h-4 text-amber-400" />
+                    <span>浅色模式</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-4 h-4 text-indigo-400" />
+                    <span>深色模式</span>
+                  </>
+                )}
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="flex justify-center items-center" title={`当前渠道: ${apiType === "official" ? "官方 Gemini" : "NewAPI"}`}>
+                <span className={`w-2.5 h-2.5 rounded-full ${apiHasKey ? "bg-green-500" : "bg-amber-500 animate-pulse"}`} />
+              </div>
+
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="flex items-center justify-center w-10 h-10 mx-auto rounded-xs bg-bg-input border border-border-color-strong text-text-secondary hover:text-text-primary cursor-pointer transition-all duration-200"
+                title={theme === "dark" ? "切换至浅色模式" : "切换至深色模式"}
+              >
+                {theme === "dark" ? (
+                  <Sun className="w-5 h-5 text-amber-400" />
+                ) : (
+                  <Moon className="w-5 h-5 text-indigo-400" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
