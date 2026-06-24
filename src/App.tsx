@@ -1790,54 +1790,9 @@ export default function App() {
                 <span className="text-[10px] text-text-muted mt-1 block">配置调用的 Gemini TTS 模型标识。</span>
               </div>
 
-              {/* Gemini Official Channel Settings */}
+              {/* 1. API Provider Selector at the top */}
               <div className="border-t border-border-color pt-3">
-                <h3 className="text-[10px] font-bold text-text-accent uppercase tracking-wider mb-2 font-mono">1. Gemini 官方渠道配置</h3>
-                <div>
-                  <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">GEMINI_API_KEY</label>
-                  <input
-                    type="password"
-                    placeholder="输入官方 Gemini API 秘钥..."
-                    className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
-                    value={geminiApiKey}
-                    onChange={(e) => setGeminiApiKey(e.target.value)}
-                  />
-                  <span className="text-[10px] text-text-muted mt-1 block">若空，则默认使用环境变量中的 GEMINI_API_KEY</span>
-                </div>
-              </div>
-
-              {/* NewAPI Channel Settings */}
-              <div className="border-t border-border-color pt-3">
-                <h3 className="text-[10px] font-bold text-text-accent uppercase tracking-wider mb-2 font-mono">2. NewAPI 中转渠道配置</h3>
-                <div className="flex flex-col gap-3">
-                  <div>
-                    <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">NewAPI Base URL</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. http://192.168.100.170:3000/v1"
-                      className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
-                      value={newApiBaseUrl}
-                      onChange={(e) => setNewApiBaseUrl(e.target.value)}
-                    />
-                    <span className="text-[10px] text-text-muted mt-1 block">本地中转站的 OpenAI 格式基础 URL。</span>
-                  </div>
-                  <div>
-                    <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">NewAPI Token / 访问令牌</label>
-                    <input
-                      type="password"
-                      placeholder="输入 NewAPI 访问令牌/秘钥..."
-                      className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
-                      value={newApiKey}
-                      onChange={(e) => setNewApiKey(e.target.value)}
-                    />
-                    <span className="text-[10px] text-text-muted mt-1 block">中转站分配的用户 API 令牌。</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Active Channel Selector */}
-              <div className="border-t border-border-color pt-3">
-                <label className="text-text-secondary block mb-1.5 uppercase tracking-wider font-mono font-bold">3. 当前启用渠道 / Active Provider</label>
+                <label className="text-text-secondary block mb-1.5 uppercase tracking-wider font-mono font-bold">1. 启用渠道 / Active Provider</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setApiType("official")}
@@ -1860,7 +1815,57 @@ export default function App() {
                     NewAPI 本地中转
                   </button>
                 </div>
-                <span className="text-[10px] text-text-muted mt-1.5 block">请指定系统当前调用语音引擎时默认走哪个渠道服务。</span>
+                <span className="text-[10px] text-text-muted mt-1.5 block">选择系统当前默认使用的语音合成渠道服务。</span>
+              </div>
+
+              {/* 2. Dynamic Settings parameters based on Selected Provider */}
+              <div className="border-t border-border-color pt-3">
+                {apiType === "official" ? (
+                  /* Gemini Official Channel Settings */
+                  <div>
+                    <h3 className="text-[10px] font-bold text-text-accent uppercase tracking-wider mb-2 font-mono">2. Gemini 官方渠道参数配置</h3>
+                    <div>
+                      <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">GEMINI_API_KEY</label>
+                      <input
+                        type="password"
+                        placeholder="输入官方 Gemini API 秘钥..."
+                        className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
+                        value={geminiApiKey}
+                        onChange={(e) => setGeminiApiKey(e.target.value)}
+                      />
+                      <span className="text-[10px] text-text-muted mt-1 block">若空，则默认使用环境变量中的 GEMINI_API_KEY</span>
+                    </div>
+                  </div>
+                ) : (
+                  /* NewAPI Channel Settings */
+                  <div>
+                    <h3 className="text-[10px] font-bold text-text-accent uppercase tracking-wider mb-2 font-mono">2. NewAPI 中转渠道参数配置</h3>
+                    <div className="flex flex-col gap-3">
+                      <div>
+                        <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">NewAPI Base URL</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. http://192.168.100.170:3000/v1"
+                          className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
+                          value={newApiBaseUrl}
+                          onChange={(e) => setNewApiBaseUrl(e.target.value)}
+                        />
+                        <span className="text-[10px] text-text-muted mt-1 block">本地中转站的 OpenAI 格式基础 URL。</span>
+                      </div>
+                      <div>
+                        <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">NewAPI Token / 访问令牌</label>
+                        <input
+                          type="password"
+                          placeholder="输入 NewAPI 访问令牌/秘钥..."
+                          className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
+                          value={newApiKey}
+                          onChange={(e) => setNewApiKey(e.target.value)}
+                        />
+                        <span className="text-[10px] text-text-muted mt-1 block">中转站分配的用户 API 令牌。</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
