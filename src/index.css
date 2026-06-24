@@ -5,13 +5,54 @@
   --font-sans: "Inter", "Noto Serif SC", system-ui, sans-serif;
   --font-serif: "Noto Serif SC", "Playfair Display", serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-bg-app: var(--bg-app);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-input: var(--bg-input);
+  --color-bg-header: var(--bg-header);
+  --color-border-color: var(--border-color);
+  --color-border-color-strong: var(--border-color-strong);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-bg-card-sub: var(--bg-card-sub);
+  --color-text-accent: var(--text-accent);
+}
+
+:root {
+  --bg-app: #070707;
+  --bg-panel: #0f0f0f;
+  --bg-input: #111111;
+  --bg-header: #0a0a0a;
+  --border-color: rgba(255, 255, 255, 0.05);
+  --border-color-strong: rgba(255, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: #d4d4d4;
+  --text-muted: #666666;
+  --bg-card-sub: #0e0e0e;
+  --text-accent: #c5a059;
+}
+
+.light {
+  --bg-app: #f5f4f0;       /* Soft light paper background */
+  --bg-panel: #ffffff;     /* White panels */
+  --bg-input: #fdfdfd;     /* White input fields */
+  --bg-header: #ffffff;    /* White header */
+  --border-color: rgba(0, 0, 0, 0.06);
+  --border-color-strong: rgba(0, 0, 0, 0.12);
+  --text-primary: #1c1a17;  /* Deep charcoal/ink color */
+  --text-secondary: #4a453e; /* Medium brown/gray ink */
+  --text-muted: #8c857b;    /* Light ink */
+  --bg-card-sub: #faf9f6;
+  --text-accent: #8e6e3c;  /* Slightly deeper gold for readability on light background */
 }
 
 @layer base {
   body {
-    background-color: #fcfbfa; /* Soft off-white paper color */
-    color: #1c1a17; /* Deep charcoal/ink color */
+    background-color: var(--bg-app);
+    color: var(--text-secondary);
     font-family: var(--font-sans);
+    transition: background-color 0.3s, color 0.3s;
   }
 }
 
