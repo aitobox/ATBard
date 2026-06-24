@@ -225,9 +225,13 @@ def recite_view(request):
             ),
         ]
 
+        # Retrieve dynamic model name from settings
+        settings_obj = APISettings.get_settings()
+        model_name_param = settings_obj.model_name or "gemini-3.1-flash-tts"
+
         ai = get_ai_client()
         response = ai.models.generate_content(
-            model="gemini-3.1-flash-tts-preview",
+            model=model_name_param,
             contents=text_prompt,
             config=types.GenerateContentConfig(
                 response_modalities=["AUDIO"],
@@ -407,7 +411,8 @@ def settings_view(request):
             "api_type": settings_obj.api_type,
             "gemini_api_key": masked_gemini,
             "new_api_base_url": settings_obj.new_api_base_url,
-            "new_api_key": masked_new_api
+            "new_api_key": masked_new_api,
+            "model_name": settings_obj.model_name
         })
         
     elif request.method == 'POST':
@@ -420,6 +425,7 @@ def settings_view(request):
         gemini_api_key = body.get("gemini_api_key", "")
         new_api_base_url = body.get("new_api_base_url", "http://192.168.100.170:3000/v1")
         new_api_key = body.get("new_api_key", "")
+        model_name = body.get("model_name", "gemini-3.1-flash-tts")
         
         # Prevent overwriting real keys when masked values are returned
         if gemini_api_key == "********" or (gemini_api_key and "..." in gemini_api_key):
@@ -432,6 +438,7 @@ def settings_view(request):
             settings_obj.gemini_api_key = gemini_api_key
             settings_obj.new_api_base_url = new_api_base_url
             settings_obj.new_api_key = new_api_key
+            settings_obj.model_name = model_name
             settings_obj.save()
         except Exception as e:
             return JsonResponse({"error": f"Failed to save settings: {str(e)}"}, status=500)
