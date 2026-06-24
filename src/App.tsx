@@ -741,7 +741,7 @@ export default function App() {
       const voiceName = voiceObj ? voiceObj.name.split(" ")[0] : selectedVoice;
       const styleObj = STYLE_OPTIONS.find(s => s.id === selectedStyle);
       const styleName = styleObj ? styleObj.label : selectedStyle;
-      a.download = `EchoMuse_FullMerged_${voiceName}_${styleName}_${Date.now().toString().slice(-6)}.wav`;
+      a.download = `ATBard_FullMerged_${voiceName}_${styleName}_${Date.now().toString().slice(-6)}.wav`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -783,7 +783,7 @@ export default function App() {
       const voiceName = voiceObj ? voiceObj.name.split(" ")[0] : session.voice;
       const styleObj = STYLE_OPTIONS.find(s => s.id === session.style);
       const styleName = styleObj ? styleObj.label : session.style;
-      a.download = `EchoMuse_FullMerged_${voiceName}_${styleName}_${Date.now().toString().slice(-6)}.wav`;
+      a.download = `ATBard_FullMerged_${voiceName}_${styleName}_${Date.now().toString().slice(-6)}.wav`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -901,7 +901,7 @@ export default function App() {
     const styleObj = STYLE_OPTIONS.find(s => s.id === audioItem.style);
     const styleName = styleObj ? styleObj.label : audioItem.style;
     
-    a.download = `EchoMuse_Recite_${voiceName}_${styleName}_${Date.now().toString().slice(-6)}.wav`;
+    a.download = `ATBard_Recite_${voiceName}_${styleName}_${Date.now().toString().slice(-6)}.wav`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -932,7 +932,7 @@ export default function App() {
           </div>
           <div>
             <span className="text-xl font-light tracking-[0.25em] uppercase text-white font-serif">
-              Echo Muse <span className="text-xs align-super opacity-60 text-[#c5a059] font-mono leading-none">3.1</span>
+              ATBard <span className="text-xs align-super opacity-60 text-[#c5a059] font-mono leading-none">3.1</span>
             </span>
             <p className="text-[9px] text-[#c5a059]/60 tracking-widest uppercase font-mono mt-0.5">Gemini High-Fidelity TTS Engine</p>
           </div>
