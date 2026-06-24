@@ -10,3 +10,4 @@ coverage/
 .pyc
 var
 __pycache__
+docs/superpowers
