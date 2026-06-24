@@ -1120,10 +1120,18 @@ export default function App() {
             
             {/* Action block directly inside editor */}
             <div className="p-4 border-t border-border-color bg-bg-card-sub flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex gap-2 text-[10px] text-text-muted font-mono">
+              <div className="flex gap-2 text-[10px] text-text-muted font-mono flex-wrap">
                 <span>[环境支持: 连读最大5万字]</span>
                 <span>•</span>
-                <span>[语音引擎: 3.1-flash-tts]</span>
+                <span>[语音引擎: {modelName}]</span>
+                {(isGenerating || isForgingAll) && (
+                  <>
+                    <span>•</span>
+                    <span className="text-text-accent font-semibold animate-pulse">
+                      [当前服务商: {apiType === "official" ? "Gemini 官方" : "NewAPI 中转"}]
+                    </span>
+                  </>
+                )}
               </div>
               
               <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
@@ -1148,12 +1156,7 @@ export default function App() {
                   {isGenerating || isForgingAll ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                      <span>
-                        {isLongModeActive ? "全卷连载中..." : "合成吟诵中..."}
-                        <span className="text-[10px] opacity-75 font-normal ml-1">
-                          [{apiType === "official" ? "Gemini 官方" : "NewAPI 中转"}]
-                        </span>
-                      </span>
+                      <span>{isLongModeActive ? "全卷连载中..." : "合成吟诵中..."}</span>
                     </>
                   ) : (
                     <>
