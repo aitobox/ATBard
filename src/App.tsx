@@ -939,6 +939,17 @@ export default function App() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const formatDateTime = (date: Date) => {
+    const pad = (num: number) => String(num).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    const mm = pad(date.getMonth() + 1);
+    const dd = pad(date.getDate());
+    const hh = pad(date.getHours());
+    const min = pad(date.getMinutes());
+    const ss = pad(date.getSeconds());
+    return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+  };
+
   return (
     <div id="app_container" className="w-full min-h-screen bg-bg-app text-text-secondary font-sans flex flex-col justify-between overflow-x-hidden antialiased selection:bg-text-accent selection:text-bg-panel">
       
@@ -1605,7 +1616,7 @@ export default function App() {
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] text-text-muted font-mono">
-                        {session.timestamp.toLocaleTimeString()}
+                        {formatDateTime(session.timestamp)}
                       </span>
                       <span className="bg-bg-input px-2 py-0.5 rounded-xs border border-border-color text-[10px] text-text-accent font-mono">
                         {session.isGroup ? `连读合集 · ${session.chunks.length} 折` : "单篇朗诵"}
