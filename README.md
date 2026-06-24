@@ -2,6 +2,21 @@
 
 ATBard 是一个基于 Google Gemini 3.1 Flash TTS 技术构建的高保真文学朗诵与有声书配音平台。它集成了创新的指令工程（Prompt Engineering）、长文本智能切片连读渲染、高颜值双色自适应主题、本地播放可视化以及精细化的会话历史管理器。
 
+# Demo
+
+* 生成范例
+
+<audio controls>
+  <source src="./assets/audios/ATBard_Recite_Zephyr_自然流畅.wav" type="audio/wav">
+</audio>
+
+
+* 系统界面
+
+<div align="center">
+  <img src="assets/images/index_screenshot.jpeg" width="80%" alt="朗诵创建">
+</div>
+
 ---
 
 ## 核心特性
