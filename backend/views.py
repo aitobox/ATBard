@@ -372,35 +372,121 @@ def recite_view(request):
         error_msg = getattr(e, "message", str(e)) or "朗诵生成失败，请检查设置或稍后重试。"
         return JsonResponse({"error": error_msg}, status=500)
 
-# Fetch History list API
+# Fetch & Manage History API
+@csrf_exempt
 def history_view(request):
+    if request.method == 'GET':
+        try:
+            records = RecitationHistory.objects.all().order_by('-timestamp')
+            data = []
+            for r in records:
+                data.append({
+                    "id": str(r.id),
+                    "timestamp": r.timestamp.isoformat(),
+                    "text": r.text,
+                    "voice": r.voice,
+                    "style": r.style,
+                    "speed": r.speed,
+                    "audioData": r.audio_base64,
+                    "duration": r.duration,
+                    "textLength": r.text_length,
+                    "promptUsed": r.prompt_used,
+                    "elapsedTimeMs": r.elapsed_time_ms,
+                    "promptTokens": r.prompt_tokens,
+                    "candidatesTokens": r.candidates_tokens,
+                    "totalTokens": r.total_tokens,
+                    "session_id": r.session_id,
+                    "chunk_index": r.chunk_index
+                })
+            return JsonResponse(data, safe=False)
+        except Exception as e:
+            print("[Recite App] Fetch history error:", e)
+            return JsonResponse({"error": str(e)}, status=500)
+    elif request.method == 'DELETE':
+        import json
+        try:
+            body = {}
+            if request.body:
+                body = json.loads(request.body.decode('utf-8'))
+            
+            record_id = body.get('id') or request.GET.get('id')
+            session_id = body.get('session_id') or request.GET.get('session_id')
+            
+            if not record_id and not session_id:
+                return JsonResponse({"error": "Missing id or session_id parameter"}, status=400)
+            
+            if session_id:
+                # Delete all records matching this session_id
+                deleted_count, _ = RecitationHistory.objects.filter(session_id=session_id).delete()
+                print(f"[Recite App] Deleted session {session_id}, total chunks deleted: {deleted_count}")
+            elif record_id:
+                # Delete specific record
+                deleted_count, _ = RecitationHistory.objects.filter(id=record_id).delete()
+                print(f"[Recite App] Deleted record {record_id}")
+                
+            return JsonResponse({"success": True})
+        except Exception as e:
+            print("[Recite App] Delete history error:", e)
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def export_history_zip_view(request):
     if request.method != 'GET':
         return JsonResponse({"error": "Method not allowed"}, status=405)
+        
     try:
+        import zipfile
+        import io
+        from datetime import datetime
+        
         records = RecitationHistory.objects.all().order_by('-timestamp')
-        data = []
-        for r in records:
-            data.append({
-                "id": str(r.id),
-                "timestamp": r.timestamp.isoformat(),
-                "text": r.text,
-                "voice": r.voice,
-                "style": r.style,
-                "speed": r.speed,
-                "audioData": r.audio_base64,
-                "duration": r.duration,
-                "textLength": r.text_length,
-                "promptUsed": r.prompt_used,
-                "elapsedTimeMs": r.elapsed_time_ms,
-                "promptTokens": r.prompt_tokens,
-                "candidatesTokens": r.candidates_tokens,
-                "totalTokens": r.total_tokens,
-                "session_id": r.session_id,
-                "chunk_index": r.chunk_index
-            })
-        return JsonResponse(data, safe=False)
+        if not records.exists():
+            return JsonResponse({"error": "No history records to export"}, status=404)
+            
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            manifest_lines = []
+            manifest_lines.append("ATBard Recitation Generation History Archive")
+            manifest_lines.append(f"Exported at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            manifest_lines.append("=" * 60 + "\n")
+            
+            for idx, r in enumerate(records):
+                try:
+                    audio_data = base64.b64decode(r.audio_base64)
+                except Exception as b64_err:
+                    print(f"B64 decode error for record {r.id}:", b64_err)
+                    continue
+                
+                time_str = r.timestamp.strftime("%Y%m%d_%H%M%S")
+                voice_name = r.voice
+                style_name = r.style
+                
+                if r.session_id:
+                    file_name = f"session_{r.session_id}/chunk_{r.chunk_index + 1:02d}_{time_str}_{voice_name}_{style_name}.wav"
+                else:
+                    file_name = f"standalone_{time_str}_{voice_name}_{style_name}_{r.id}.wav"
+                    
+                zip_file.writestr(file_name, audio_data)
+                
+                manifest_lines.append(f"File: {file_name}")
+                manifest_lines.append(f"Date: {r.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+                manifest_lines.append(f"Voice: {r.voice} | Style: {r.style} | Speed: {r.speed}")
+                manifest_lines.append(f"Text: {r.text}")
+                manifest_lines.append("-" * 40 + "\n")
+                
+            zip_file.writestr("manifest.txt", "\n".join(manifest_lines))
+            
+        zip_buffer.seek(0)
+        
+        response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="atbard_history_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip"'
+        return response
+        
     except Exception as e:
-        print("[Recite App] Fetch history error:", e)
+        print("[Recite App] Export history error:", e)
         return JsonResponse({"error": str(e)}, status=500)
 
 

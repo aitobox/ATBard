@@ -20,7 +20,12 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronDown,
-  Sun
+  Sun,
+  Search,
+  Trash2,
+  RefreshCw,
+  FileArchive,
+  X
 } from "lucide-react";
 import { PRESETS, RecitationPreset } from "./presets";
 
@@ -305,6 +310,9 @@ export default function App() {
   const templateMenuRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<GenerationHistory[]>([]);
   const [showPromptInspector, setShowPromptInspector] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filterStartDate, setFilterStartDate] = useState<string>("");
+  const [filterEndDate, setFilterEndDate] = useState<string>("");
   
   // System latency state (mock realistic interactive display)
   const [latency, setLatency] = useState<number>(42);
@@ -953,6 +961,82 @@ export default function App() {
     return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
   };
 
+  // Reload parameters and content from a past session into the studio editor workspace
+  const handleReloadSession = (session: HistorySession) => {
+    setText(session.text);
+    setSelectedVoice(session.voice);
+    setSelectedStyle(session.style);
+    setSelectedSpeed(session.speed);
+    setCurrentView("studio");
+  };
+
+  // Delete a history record or a whole session group from DB and update state
+  const handleDeleteSession = async (session: HistorySession) => {
+    if (!window.confirm("确定要删除此生成历史记录吗？此操作不可撤销。")) {
+      return;
+    }
+    
+    try {
+      const response = await fetch("/api/history", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: session.isGroup ? undefined : session.id,
+          session_id: session.isGroup ? session.id : undefined,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("删除请求失败");
+      }
+      
+      // Update local React state
+      setHistory(prev => {
+        if (session.isGroup) {
+          return prev.filter(item => item.sessionId !== session.id);
+        } else {
+          return prev.filter(item => item.id !== session.id);
+        }
+      });
+      
+    } catch (err: any) {
+      console.error("Delete history error:", err);
+      alert("删除失败，请重试。");
+    }
+  };
+
+  // Export all database history into a compressed ZIP file
+  const handleExportAllHistory = () => {
+    window.open("/api/history/export", "_blank");
+  };
+
+  // Computed filtered history sessions
+  const filteredSessions = groupHistory(history).filter(session => {
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase();
+      const matchText = session.text.toLowerCase().includes(q);
+      const matchVoice = getVoiceName(session.voice).toLowerCase().includes(q) || session.voice.toLowerCase().includes(q);
+      const matchStyle = getStyleLabel(session.style).toLowerCase().includes(q) || session.style.toLowerCase().includes(q);
+      if (!matchText && !matchVoice && !matchStyle) {
+        return false;
+      }
+    }
+    
+    if (filterStartDate) {
+      const start = new Date(filterStartDate + "T00:00:00").getTime();
+      if (session.timestamp.getTime() < start) return false;
+    }
+    
+    if (filterEndDate) {
+      const end = new Date(filterEndDate + "T23:59:59.999").getTime();
+      if (session.timestamp.getTime() > end) return false;
+    }
+    
+    return true;
+  });
+
   return (
     <div id="app_container" className="w-full h-screen bg-bg-app text-text-secondary font-sans flex overflow-hidden antialiased selection:bg-text-accent selection:text-bg-panel">
       
@@ -980,14 +1064,13 @@ export default function App() {
               </div>
               <div>
                 <span className="text-xl font-light tracking-[0.25em] uppercase text-text-primary font-serif">
-                  ATBard <span className="text-xs align-super opacity-60 text-text-accent font-mono leading-none">3.1</span>
+                  ATBard
                 </span>
-                <p className="text-[9px] text-text-accent/60 tracking-widest uppercase font-mono mt-0.5">Gemini TTS Engine</p>
               </div>
             </div>
           ) : (
             <div className="flex justify-center items-center">
-              <div className="w-9 h-9 bg-gradient-to-tr from-[#c5a059] to-[#8e6e3c] rounded-sm flex items-center justify-center shadow-lg shadow-[#c5a059]/10" title="ATBard 3.1">
+              <div className="w-9 h-9 bg-gradient-to-tr from-[#c5a059] to-[#8e6e3c] rounded-sm flex items-center justify-center shadow-lg shadow-[#c5a059]/10" title="ATBard">
                 <Music4 className="w-4.5 h-4.5 text-black" />
               </div>
             </div>
@@ -1179,13 +1262,13 @@ export default function App() {
         )}
 
         {/* Scrollable Content Pane */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto xl:overflow-hidden flex flex-col min-h-0">
           
           {currentView === "studio" && (
-            <main className="flex-1 flex flex-col xl:flex-row px-6 py-6 gap-8 md:gap-10">
+            <main className="flex-1 flex flex-col xl:flex-row px-6 py-6 gap-8 md:gap-10 xl:min-h-0">
         
         {/* Left Side: Textarea & Presets */}
-        <div id="main_editor_panel" className="flex-1 flex flex-col gap-6">
+        <div id="main_editor_panel" className="flex-1 flex flex-col gap-6 xl:min-h-0">
           
 
 
@@ -1197,7 +1280,7 @@ export default function App() {
                   手稿编撰
                 </span>
               </h1>
-              <p className="text-xs text-text-muted tracking-wide uppercase mt-1">
+              <p className="text-xs text-text-secondary tracking-wide uppercase mt-1">
                 请输入你需要配音或朗诵的文学诗稿、演讲词或散文乐段 {isLongModeActive && " · [已启用长链智能分卷]"}
               </p>
             </div>
@@ -1270,14 +1353,14 @@ export default function App() {
                 )}
               </div>
 
-              <div className="text-[10px] text-text-muted font-mono tracking-widest uppercase bg-bg-card-sub px-2.5 py-1.5 border border-border-color rounded-xs select-none">
+              <div className="text-[11px] text-text-secondary font-mono tracking-widest uppercase bg-bg-card-sub px-2.5 py-1.5 border border-border-color-strong rounded-xs select-none">
                 WORDS: <span className="text-text-primary font-bold">{text.length}</span> / 50000
               </div>
             </div>
           </div>
           
           {/* Main Textarea input */}
-          <div className="relative flex-1 min-h-[300px] flex flex-col bg-bg-input border border-border-color focus-within:border-text-accent/40 transition-colors">
+          <div className="relative flex-1 min-h-[220px] flex flex-col bg-bg-input border border-border-color focus-within:border-text-accent/40 transition-colors">
             <textarea 
               id="raw_text_textarea"
               maxLength={50000}
@@ -1289,7 +1372,7 @@ export default function App() {
             
             {/* Action block directly inside editor */}
             <div className="p-4 border-t border-border-color bg-bg-card-sub flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex gap-2 text-[10px] text-text-muted font-mono flex-wrap">
+              <div className="flex gap-2 text-[11px] text-text-secondary font-mono flex-wrap">
                 <span>[环境支持: 连读最大5万字]</span>
                 <span>•</span>
                 <span>[语音引擎: {modelName}]</span>
@@ -1381,7 +1464,7 @@ export default function App() {
                     <BookOpen className="w-4 h-4 text-text-accent" />
                     智能名著分卷连读 (Smart Scrollwork Partitioning)
                   </h3>
-                  <p className="text-[11px] text-text-muted mt-0.5">
+                  <p className="text-xs text-text-secondary mt-1">
                     我们已将您的连续字篇优雅切割为独立书册，分段提交可保障完美高真音品。
                   </p>
                 </div>
@@ -1402,8 +1485,8 @@ export default function App() {
               {/* Batch forge triggers */}
               <div className="flex flex-wrap items-center justify-between gap-3 bg-bg-card-sub p-3 rounded-xs border border-border-color mb-4">
                 <div className="text-[11px] font-mono text-text-secondary">
-                  划分 <span className="text-text-primary font-bold">{playableChunks.length}</span> 折书卷 • 
-                  就绪 <span className="text-text-accent font-bold">{playableChunks.filter(c => c.status === 'ready').length}</span> 折
+                  划分 <span className="text-text-primary font-bold">{playableChunks.length}</span> 卷 • 
+                  <span className="text-text-accent font-bold">{playableChunks.filter(c => c.status === 'ready').length}</span> 卷已完成
                 </div>
                 
                 <div className="flex items-center gap-2">
@@ -1453,20 +1536,20 @@ export default function App() {
                   switch (chunk.status) {
                     case 'generating':
                       statusBadge = (
-                        <span className="text-[9px] text-text-accent flex items-center gap-1">
+                        <span className="text-[10px] text-text-accent flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-text-accent animate-ping" />
                           合成中
                         </span>
                       );
                       break;
                     case 'ready':
-                      statusBadge = <span className="text-[9px] text-emerald-600 dark:text-emerald-400">已就绪</span>;
+                      statusBadge = <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">已就绪</span>;
                       break;
                     case 'error':
-                      statusBadge = <span className="text-[9px] text-red-400" title={chunk.error}>断流</span>;
+                      statusBadge = <span className="text-[10px] text-red-400 font-medium" title={chunk.error}>断流</span>;
                       break;
                     default:
-                      statusBadge = <span className="text-[9px] text-text-muted">待合成</span>;
+                      statusBadge = <span className="text-[10px] text-text-secondary">待合成</span>;
                   }
 
                   return (
@@ -1486,7 +1569,7 @@ export default function App() {
                         "{chunk.text}"
                       </p>
                       
-                      <div className="flex items-center justify-between mt-1 text-[9px] font-mono text-text-muted">
+                      <div className="flex items-center justify-between mt-1 text-[10px] font-mono text-text-secondary">
                         <span>{chunk.text.length} 字</span>
                         <span className="text-text-accent opacity-0 group-hover:opacity-100 transition-opacity">
                           {chunk.status === 'ready' ? "主控放音" : "一键吟诵"} →
@@ -1498,19 +1581,156 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* Playback & Export Group */}
+          <div className="flex flex-col gap-3">
+            {/* Premium Playback Console */}
+            <section id="section_playback_console">
+              <div className="bg-bg-panel p-5 border border-border-color-strong relative overflow-hidden shadow-2xl shadow-black/40">
+                
+                {/* Decorative side accent */}
+                <div className="absolute top-0 right-0 w-24 h-24 bg-text-accent/2 blur-[35px] pointer-events-none" />
+
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[11px] font-mono font-bold text-text-secondary uppercase tracking-widest flex items-center gap-1 select-none">
+                    <span className="inline-block w-2 h-2 rounded-full bg-text-accent playing-wave-item" />
+                    Live Preview Console
+                  </span>
+                  <span className="text-[10px] font-mono text-text-accent bg-text-accent/10 border border-text-accent/20 px-2 py-0.5 rounded-sm">
+                    24KHZ / WAV
+                  </span>
+                </div>
+
+                {/* Status or Details for Current Track */}
+                <div className="mb-4 bg-bg-card-sub p-3 border border-border-color text-text-secondary">
+                    {currentAudio ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-text-primary font-serif line-clamp-1 italic">
+                          "{currentAudio.text}"
+                        </span>
+                        <div className="flex items-center gap-2 mt-1 text-[10px] tracking-wider text-text-secondary font-mono">
+                          <span>VOICE: {getVoiceName(currentAudio.voice).split(" ")[0]}</span>
+                          <span>•</span>
+                          <span>TONE: {getStyleLabel(currentAudio.style)}</span>
+                          <span>•</span>
+                          <span>LEN: {currentAudio.textLength}字</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-2">
+                        <p className="text-xs text-text-secondary">
+                        尚未点击生成。请载入经典或录入自创手稿，点击下方的 <strong>“唤醒朗诵大师”</strong>。
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Luxury Bar Visualizer */}
+                <div className="flex items-end justify-between gap-[3px] h-14 mb-4 px-2 select-none border-b border-border-color pb-2">
+                  {barHeights.map((height, idx) => (
+                    <div 
+                      key={idx}
+                      style={{ height: `${height}%` }}
+                      className={`flex-1 transition-all duration-150 rounded-t-sm ${
+                        isPlaying 
+                          ? "bg-gradient-to-t from-text-accent to-text-accent/80" 
+                          : "bg-border-color-strong"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* Interactive Player Controls */}
+                <div className="flex items-center justify-between gap-4">
+                  <button 
+                    id="btn_player_play_pause"
+                    disabled={!currentAudio}
+                    onClick={handlePlayPause}
+                    className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all ${
+                      !currentAudio 
+                        ? "border-border-color text-text-muted bg-bg-card-sub/50 cursor-not-allowed" 
+                        : "border-text-accent text-text-primary bg-text-accent/10 hover:bg-text-accent/20 cursor-pointer active:scale-95"
+                    }`}
+                    title={isPlaying ? "暂停" : "开始播放"}
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-5 h-5 text-text-accent fill-text-accent" />
+                    ) : (
+                      <Play className="w-5 h-5 text-text-accent fill-text-accent translate-x-0.5" />
+                    )}
+                  </button>
+
+                  {/* Progress bar info */}
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center text-[10px] text-text-muted mb-1 font-mono">
+                      <span>{formatTime(currentTime)}</span>
+                      <span>{currentAudio ? formatTime(currentAudio.duration) : "00:00"}</span>
+                    </div>
+                    <div className="h-1 bg-bg-card-sub relative rounded-full overflow-hidden">
+                      <div 
+                        style={{ 
+                          width: `${currentAudio ? (currentTime / currentAudio.duration) * 100 : 0}%` 
+                        }} 
+                        className="absolute left-0 top-0 h-full bg-text-accent rounded-full transition-all duration-100"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Volume slider */}
+                  <div className="flex items-center gap-1.5 bg-bg-card-sub px-2 py-1 rounded-sm border border-border-color">
+                    <button 
+                      onClick={toggleMute}
+                      disabled={!currentAudio}
+                      className="text-text-muted hover:text-text-primary cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {isMuted ? (
+                        <VolumeX className="w-3.5 h-3.5 text-red-400" />
+                      ) : (
+                        <Volume2 className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                    <input 
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      disabled={!currentAudio}
+                      value={volume}
+                      onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                      className="w-12 h-1 bg-bg-input rounded-lg appearance-none cursor-pointer accent-text-accent disabled:opacity-40"
+                    />
+                  </div>
+                </div>
+
+              </div>
+            </section>
+
+            {/* Export Section */}
+            <div className="flex justify-end">
+              <button 
+                id="btn_download_wav"
+                disabled={!currentAudio}
+                onClick={() => handleDownload(currentAudio!)}
+                className="px-6 py-2 bg-text-accent text-bg-panel text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer shadow-lg shadow-text-accent/5 active:scale-95"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>导出音频</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Right Side: Setup Controls & Custom Audio Player */}
-        <div id="controls_panel" className="w-full xl:w-[380px] flex flex-col gap-8">
+        <div id="controls_panel" className="w-full xl:w-[380px] flex flex-col gap-8 xl:min-h-0 xl:overflow-y-auto pr-1">
           
           {/* Voice Setup Group */}
           <section id="section_voice_picker" className="flex flex-col gap-3">
             <div className="flex justify-between items-center">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono flex items-center gap-1">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-text-secondary font-mono flex items-center gap-1">
                 <span>01.</span>
-                <span>Select Voice / 选角吟松</span>
+                <span>Select Voice / 选角吟诵</span>
               </h3>
-              <span className="text-[9px] text-text-muted font-mono uppercase bg-bg-card-sub px-1.5 py-0.5 rounded-sm border border-border-color">
+              <span className="text-[10px] text-text-secondary font-mono uppercase bg-bg-card-sub px-2 py-0.5 rounded-sm border border-border-color">
                 5 Cores
               </span>
             </div>
@@ -1535,9 +1755,9 @@ export default function App() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-1">
                       <div className="text-xs text-text-primary font-medium truncate">{vo.name}</div>
-                      <div className="text-[9px] font-mono opacity-50 px-1 py-0.2 bg-bg-card-sub text-text-muted scale-90">{vo.type}</div>
+                      <div className="text-[10px] font-mono px-1.5 py-0.5 bg-text-accent/10 text-text-accent border border-text-accent/20 rounded-sm">{vo.type}</div>
                     </div>
-                    <div className="text-[10px] text-text-muted truncate mt-0.5">{vo.desc}</div>
+                    <div className="text-[11px] text-text-secondary truncate mt-0.5">{vo.desc}</div>
                   </div>
                   {selectedVoice === vo.id && (
                     <div className="w-1.5 h-1.5 rounded-full bg-text-accent shadow-sm shadow-text-accent" />
@@ -1550,11 +1770,11 @@ export default function App() {
           {/* Mood Tone and Speed Settings */}
           <section id="section_artistic_tone" className="flex flex-col gap-5 bg-bg-input p-5 border border-border-color">
             <div>
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono flex items-center gap-1">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-text-secondary font-mono flex items-center gap-1">
                 <span>02.</span>
                 <span>Artistic Tone / 朗诵情感基调</span>
               </h3>
-              <p className="text-[10px] text-text-muted mt-1">
+              <p className="text-[11px] text-text-secondary mt-1">
                 指导 Gemini 吟诵时应表现出的语气艺术和情感底蕴。
               </p>
             </div>
@@ -1573,7 +1793,7 @@ export default function App() {
                   }`}
                 >
                   <span className="text-xs font-semibold">{style.label}</span>
-                  <span className="text-[9px] opacity-60 line-clamp-1 truncate block font-sans tracking-wide">
+                  <span className="text-[10px] text-text-secondary/80 line-clamp-1 truncate block font-sans tracking-wide">
                     {style.desc}
                   </span>
                 </button>
@@ -1582,7 +1802,7 @@ export default function App() {
 
             {/* Speed setup */}
             <div className="border-t border-border-color pt-4">
-              <h4 className="text-[9px] uppercase tracking-widest text-text-accent font-mono mb-2">
+              <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-text-accent font-mono mb-2">
                 Speed Rhythm / 吟篇节奏
               </h4>
               <div className="grid grid-cols-3 gap-2">
@@ -1594,164 +1814,16 @@ export default function App() {
                     className={`py-1.5 px-2 text-center text-[10px] border transition-all cursor-pointer ${
                       selectedSpeed === sp.id
                         ? "border-text-accent bg-text-accent/10 text-text-primary font-medium"
-                        : "border-border-color bg-bg-card-sub text-text-muted hover:text-text-primary"
+                        : "border-border-color bg-bg-card-sub text-text-secondary hover:text-text-primary"
                     }`}
                   >
                     <div>{sp.label.split(" ")[0]}</div>
-                    <div className="text-[8px] opacity-40 scale-90">{sp.label.split(" ")[1] || "1.0x"}</div>
+                    <div className="text-[10px] text-text-secondary font-mono mt-0.5">{sp.label.split(" ")[1] || "1.0x"}</div>
                   </button>
                 ))}
               </div>
             </div>
           </section>
-
-          {/* Premium Playback Console */}
-          <section id="section_playback_console" className="mt-auto">
-            <div className="bg-bg-panel p-5 border border-border-color-strong relative overflow-hidden shadow-2xl shadow-black/40">
-              
-              {/* Decorative side accent */}
-              <div className="absolute top-0 right-0 w-24 h-24 bg-text-accent/2 blur-[35px] pointer-events-none" />
-
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-mono text-text-muted uppercase tracking-widest flex items-center gap-1 select-none">
-                  <span className="inline-block w-2 h-2 rounded-full bg-text-accent playing-wave-item" />
-                  Live Preview Console
-                </span>
-                <span className="text-[9px] font-mono text-text-accent bg-text-accent/10 border border-text-accent/20 px-1.5 py-0.5 rounded-sm">
-                  24KHZ / WAV
-                </span>
-              </div>
-
-              {/* Status or Details for Current Track */}
-              <div className="mb-4 bg-bg-card-sub p-3 border border-border-color text-text-secondary">
-                  {currentAudio ? (
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs text-text-primary font-serif line-clamp-1 italic">
-                        "{currentAudio.text}"
-                      </span>
-                      <div className="flex items-center gap-2 mt-1 text-[9px] tracking-wider text-text-muted font-mono">
-                        <span>VOICE: {getVoiceName(currentAudio.voice).split(" ")[0]}</span>
-                        <span>•</span>
-                        <span>TONE: {getStyleLabel(currentAudio.style)}</span>
-                        <span>•</span>
-                        <span>LEN: {currentAudio.textLength}字</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-2">
-                      <p className="text-xs text-text-muted">
-                      尚未点击生成。请载入经典或录入自创手稿，点击下方的 <strong>“唤醒朗诵大师”</strong>。
-                    </p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Luxury Bar Visualizer */}
-              <div className="flex items-end justify-between gap-[3px] h-14 mb-4 px-2 select-none border-b border-border-color pb-2">
-                {barHeights.map((height, idx) => (
-                  <div 
-                    key={idx}
-                    style={{ height: `${height}%` }}
-                    className={`flex-1 transition-all duration-150 rounded-t-sm ${
-                      isPlaying 
-                        ? "bg-gradient-to-t from-text-accent to-text-accent/80" 
-                        : "bg-border-color-strong"
-                    }`}
-                  />
-                ))}
-              </div>
-
-              {/* Interactive Player Controls */}
-              <div className="flex items-center justify-between gap-4">
-                <button 
-                  id="btn_player_play_pause"
-                  disabled={!currentAudio}
-                  onClick={handlePlayPause}
-                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all ${
-                    !currentAudio 
-                      ? "border-border-color text-text-muted bg-bg-card-sub/50 cursor-not-allowed" 
-                      : "border-text-accent text-text-primary bg-text-accent/10 hover:bg-text-accent/20 cursor-pointer active:scale-95"
-                  }`}
-                  title={isPlaying ? "暂停" : "开始播放"}
-                >
-                  {isPlaying ? (
-                    <Pause className="w-5 h-5 text-text-accent fill-text-accent" />
-                  ) : (
-                    <Play className="w-5 h-5 text-text-accent fill-text-accent translate-x-0.5" />
-                  )}
-                </button>
-
-                {/* Progress bar info */}
-                <div className="flex-1">
-                  <div className="flex justify-between items-center text-[10px] text-text-muted mb-1 font-mono">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{currentAudio ? formatTime(currentAudio.duration) : "00:00"}</span>
-                  </div>
-                  <div className="h-1 bg-bg-card-sub relative rounded-full overflow-hidden">
-                    <div 
-                      style={{ 
-                        width: `${currentAudio ? (currentTime / currentAudio.duration) * 100 : 0}%` 
-                      }} 
-                      className="absolute left-0 top-0 h-full bg-text-accent rounded-full transition-all duration-100"
-                    />
-                  </div>
-                </div>
-
-                {/* Volume slider */}
-                <div className="flex items-center gap-1.5 bg-bg-card-sub px-2 py-1 rounded-sm border border-border-color">
-                  <button 
-                    onClick={toggleMute}
-                    disabled={!currentAudio}
-                    className="text-text-muted hover:text-text-primary cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    {isMuted ? (
-                      <VolumeX className="w-3.5 h-3.5 text-red-400" />
-                    ) : (
-                      <Volume2 className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                  <input 
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    disabled={!currentAudio}
-                    value={volume}
-                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                    className="w-12 h-1 bg-bg-input rounded-lg appearance-none cursor-pointer accent-text-accent disabled:opacity-40"
-                  />
-                </div>
-              </div>
-
-            </div>
-          </section>
-
-          {/* WAV & Export Section */}
-          <div className="grid grid-cols-2 gap-3">
-            <button 
-              id="btn_download_wav"
-              disabled={!currentAudio}
-              onClick={() => handleDownload(currentAudio!)}
-              className="py-3 bg-bg-input border border-border-color hover:border-text-accent/40 text-[10px] uppercase tracking-widest text-text-secondary hover:text-text-primary transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-30 disabled:hover:border-border-color disabled:cursor-not-allowed"
-            >
-              <Download className="w-3.5 h-3.5" />
-              WAV Export
-            </button>
-            <button 
-              id="btn_share_config"
-              onClick={() => {
-                if (currentAudio) {
-                  navigator.clipboard.writeText(currentAudio.text);
-                  alert("朗诵文本已成功复制到剪贴板，可供分享或存录。");
-                } else {
-                  alert("生成后可一键复制文本分享。");
-                }
-              }}
-              className="py-3 bg-bg-input border border-border-color hover:border-text-accent/40 text-[10px] uppercase tracking-widest text-text-secondary hover:text-text-primary transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              Share Text
-            </button>
-          </div>
 
         </div>
       </main>
@@ -1765,10 +1837,80 @@ export default function App() {
               <Clock className="w-4 h-4 text-text-accent" />
               吟诵成卷 · 本地生成历史 (Session History)
             </h3>
-            <p className="text-xs text-text-muted mt-1">记录您在此浏览器会话中成功渲染的每一篇有声艺术手卷</p>
+            <p className="text-xs text-text-secondary mt-1">记录您在此浏览器会话中成功渲染的每一篇有声艺术手卷</p>
           </div>
           <span className="text-xs text-text-accent font-mono">{history.length} 篇手卷</span>
         </div>
+
+        {/* Filter and Export Tools Panel */}
+        {history.length > 0 && (
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-bg-card-sub p-4 border border-border-color mb-5 rounded-xs">
+            <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center gap-4 w-full xl:w-auto">
+              
+              {/* Search Box */}
+              <div className="relative flex-1 max-w-xs min-w-[220px]">
+                <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-text-muted">
+                  <Search className="w-3.5 h-3.5" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="搜索历史内容/角色/风格..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-bg-input border border-border-color pl-9 pr-8 py-1.5 text-xs text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent/40 rounded-xs"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-2 flex items-center text-text-muted hover:text-text-primary cursor-pointer border-none bg-transparent"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Date Pickers */}
+              <div className="flex flex-wrap items-center gap-2.5 text-xs text-text-secondary">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-text-accent font-bold">按时间筛选:</span>
+                <input
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                  className="bg-bg-input border border-border-color px-2.5 py-1 text-xs text-text-primary focus:outline-none rounded-xs cursor-pointer font-mono"
+                />
+                <span className="text-text-muted">至</span>
+                <input
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                  className="bg-bg-input border border-border-color px-2.5 py-1 text-xs text-text-primary focus:outline-none rounded-xs cursor-pointer font-mono"
+                />
+                
+                {(filterStartDate || filterEndDate) && (
+                  <button
+                    onClick={() => {
+                      setFilterStartDate("");
+                      setFilterEndDate("");
+                    }}
+                    className="px-2.5 py-1 bg-bg-input hover:bg-bg-card-sub border border-border-color text-[10px] cursor-pointer rounded-xs text-text-secondary transition-colors"
+                  >
+                    清除
+                  </button>
+                )}
+              </div>
+
+            </div>
+
+            {/* Export all button */}
+            <button
+              onClick={handleExportAllHistory}
+              className="w-full xl:w-auto px-4 py-2 bg-text-accent text-bg-panel text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-text-accent/5 rounded-xs"
+            >
+              <FileArchive className="w-3.5 h-3.5" />
+              <span>全部打包导出 (ZIP)</span>
+            </button>
+          </div>
+        )}
 
         {history.length === 0 ? (
           <div className="text-center py-10 text-text-muted bg-bg-card-sub/20 border border-dashed border-border-color">
@@ -1777,9 +1919,16 @@ export default function App() {
               暂无历史生成记录。快录入或选择一首诗作，点击“唤醒朗诵大师”！
             </p>
           </div>
+        ) : filteredSessions.length === 0 ? (
+          <div className="text-center py-10 text-text-secondary bg-bg-card-sub/20 border border-dashed border-border-color">
+            <Search className="w-8 h-8 text-stone-700 mx-auto mb-2.5" />
+            <p className="text-xs">
+              未能匹配到任何生成历史。请检查搜索关键字或筛选时间段！
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {groupHistory(history).map((session) => {
+            {filteredSessions.map((session) => {
               const isExpanded = !!expandedSessions[session.id];
               const isSelected = currentAudio?.id === session.id;
               
@@ -1793,7 +1942,7 @@ export default function App() {
                   {/* Row Header */}
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-text-muted font-mono">
+                      <span className="text-[10px] text-text-secondary font-mono">
                         {formatDateTime(session.timestamp)}
                       </span>
                       <span className="bg-bg-input px-2 py-0.5 rounded-xs border border-border-color text-[10px] text-text-accent font-mono">
@@ -1843,6 +1992,23 @@ export default function App() {
                           </button>
                         </>
                       )}
+
+                      <button
+                        onClick={() => handleReloadSession(session)}
+                        className="px-3 py-1.5 bg-bg-input hover:bg-text-accent hover:text-bg-panel text-text-secondary transition-all border border-border-color text-[10px] font-bold cursor-pointer flex items-center gap-1"
+                        title="载入参数及手稿到工作区重新编辑"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>重新载入</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteSession(session)}
+                        className="p-1.5 px-2.5 border border-border-color hover:border-red-500/50 text-text-muted hover:text-red-400 cursor-pointer flex items-center justify-center transition-all"
+                        title="删除历史记录"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                   
