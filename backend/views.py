@@ -230,19 +230,32 @@ def recite_view(request):
         model_name_param = settings_obj.model_name or "gemini-3.1-flash-tts"
 
         ai = get_ai_client()
-        response = ai.models.generate_content(
-            model=model_name_param,
-            contents=text_prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=["AUDIO"],
-                safety_settings=safety_settings,
-                speech_config=types.SpeechConfig(
-                    voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=chosen_voice),
+        retry_delays = [4, 8, 16, 32]
+        response = None
+        for attempt in range(len(retry_delays) + 1):
+            try:
+                response = ai.models.generate_content(
+                    model=model_name_param,
+                    contents=text_prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["AUDIO"],
+                        safety_settings=safety_settings,
+                        speech_config=types.SpeechConfig(
+                            voice_config=types.VoiceConfig(
+                                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=chosen_voice),
+                            ),
+                        ),
                     ),
-                ),
-            ),
-        )
+                )
+                break
+            except Exception as e:
+                if attempt < len(retry_delays):
+                    delay = retry_delays[attempt]
+                    print(f"[Recite App] API call failed (attempt {attempt + 1}). Retrying in {delay}S... Error: {e}")
+                    time.sleep(delay)
+                else:
+                    print(f"[Recite App] API call failed after {attempt + 1} attempts. Error: {e}")
+                    raise e
 
         # Log prompt feedback if present
         prompt_feedback = getattr(response, "prompt_feedback", None)
