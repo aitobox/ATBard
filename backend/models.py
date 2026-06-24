@@ -29,6 +29,7 @@ class APISettings(models.Model):
     gemini_api_key = models.CharField(max_length=255, blank=True, default='')
     new_api_base_url = models.CharField(max_length=255, default='http://192.168.100.170:3000/v1')
     new_api_key = models.CharField(max_length=255, blank=True, default='')
+    model_name = models.CharField(max_length=100, default='gemini-3.1-flash-tts')
 
     class Meta:
         verbose_name = "API Settings"
