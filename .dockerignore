@@ -1,0 +1,15 @@
+node_modules
+dist
+var
+.git
+.gitignore
+.env
+.env.example
+.agents
+*.pyc
+__pycache__
+Dockerfile
+docker-compose.yml
+.dockerignore
+README.md
+docs

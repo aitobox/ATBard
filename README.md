@@ -136,6 +136,40 @@ python manage.py runserver 0.0.0.0:3000
 
 启动完成后，请在浏览器中访问 [http://localhost:3000](http://localhost:3000)。
 
+### 7. Docker 容器化部署 (推荐)
+
+如果您希望以纯净、快速、零依赖的方式部署应用，可以使用 Docker。
+
+**方式 A：使用 Docker Compose (一键部署，自动持久化)**
+
+1. 在宿主机配置您的环境变量（或在启动时传入）：
+   ```bash
+   export GEMINI_API_KEY="您的_GEMINI_API_KEY"
+   ```
+2. 运行一键构建并启动服务：
+   ```bash
+   docker compose up -d --build
+   ```
+   *服务会自动在后台构建，且启动后在宿主机自动生成 `./data` 文件夹映射至容器的 `/app/var` 目录，持久化保存 SQLite 数据库、日志与任务音频文件。*
+
+**方式 B：使用原生 Docker 构建与运行**
+
+1. 构建镜像：
+   ```bash
+   docker build -t atbard:latest .
+   ```
+2. 启动容器（映射宿主机 3000 端口，并挂载数据卷保持数据持久化）：
+   ```bash
+   docker run -d \
+     -p 3000:3000 \
+     -e GEMINI_API_KEY="您的_GEMINI_API_KEY" \
+     -v $$(pwd)/data:/app/var \
+     --name atbard-app \
+     atbard:latest
+   ```
+
+启动成功后，即可直接在浏览器中访问 [http://localhost:3000](http://localhost:3000)。
+
 ---
 
 ## 核心 API 路由说明
