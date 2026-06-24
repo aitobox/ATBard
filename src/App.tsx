@@ -313,6 +313,7 @@ export default function App() {
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [newApiBaseUrl, setNewApiBaseUrl] = useState("http://192.168.100.170:3000/v1");
   const [newApiKey, setNewApiKey] = useState("");
+  const [modelName, setModelName] = useState("gemini-3.1-flash-tts");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Fetch settings on mount
@@ -325,6 +326,7 @@ export default function App() {
           setGeminiApiKey(data.gemini_api_key || "");
           setNewApiBaseUrl(data.new_api_base_url || "http://192.168.100.170:3000/v1");
           setNewApiKey(data.new_api_key || "");
+          setModelName(data.model_name || "gemini-3.1-flash-tts");
         }
       })
       .catch((err) => console.error("Error loading settings:", err));
@@ -1730,6 +1732,19 @@ export default function App() {
             </h2>
             
             <div className="mt-4 flex flex-col gap-4 text-xs">
+              {/* Model Name Settings */}
+              <div>
+                <label className="text-gray-400 block mb-1 font-mono uppercase tracking-wider">Model Name / 模型名称</label>
+                <input
+                  type="text"
+                  placeholder="e.g. gemini-3.1-flash-tts"
+                  className="w-full bg-[#121212] border border-white/5 p-2.5 text-white focus:outline-none focus:border-[#c5a059]/40 font-mono"
+                  value={modelName}
+                  onChange={(e) => setModelName(e.target.value)}
+                />
+                <span className="text-[10px] text-gray-500 mt-1 block">配置调用的 Gemini TTS 模型标识。</span>
+              </div>
+
               {/* API Type Selector */}
               <div>
                 <label className="text-gray-400 block mb-1.5 uppercase tracking-wider font-mono">API Provider / 服务提供方</label>
@@ -1817,7 +1832,8 @@ export default function App() {
                         api_type: apiType,
                         gemini_api_key: geminiApiKey,
                         new_api_base_url: newApiBaseUrl,
-                        new_api_key: newApiKey
+                        new_api_key: newApiKey,
+                        model_name: modelName
                       })
                     });
                     if (!res.ok) {
