@@ -1148,7 +1148,12 @@ export default function App() {
                   {isGenerating || isForgingAll ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                      <span>{isLongModeActive ? "全卷连载炼制中..." : "合成吟诵中..."}</span>
+                      <span>
+                        {isLongModeActive ? "全卷连载中..." : "合成吟诵中..."}
+                        <span className="text-[10px] opacity-75 font-normal ml-1">
+                          [{apiType === "official" ? "Gemini 官方" : "NewAPI 中转"}]
+                        </span>
+                      </span>
                     </>
                   ) : (
                     <>
