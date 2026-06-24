@@ -1,0 +1,11 @@
+services:
+  atbard:
+    build: .
+    container_name: atbard
+    ports:
+      - "3000:3000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./data:/app/var
+    restart: always
