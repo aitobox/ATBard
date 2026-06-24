@@ -1770,99 +1770,104 @@ export default function App() {
 
       {showSettingsModal && (
         <div id="settings_overlay" className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0f0f0f] border border-white/10 w-full max-w-md p-6 rounded-sm shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-xl font-serif italic text-white flex items-center gap-2 border-b border-white/5 pb-3">
-              <Sliders className="w-5 h-5 text-[#c5a059]" />
+          <div className="bg-bg-panel border border-border-color-strong w-full max-w-md p-6 rounded-sm shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-serif italic text-text-primary flex items-center gap-2 border-b border-border-color pb-3">
+              <Sliders className="w-5 h-5 text-text-accent" />
               API Settings / 配置管理
             </h2>
             
-            <div className="mt-4 flex flex-col gap-4 text-xs">
+            <div className="mt-4 flex flex-col gap-4 text-xs max-h-[60vh] overflow-y-auto pr-1">
               {/* Model Name Settings */}
               <div>
-                <label className="text-gray-400 block mb-1 font-mono uppercase tracking-wider">Model Name / 模型名称</label>
+                <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">Model Name / 模型名称</label>
                 <input
                   type="text"
                   placeholder="e.g. gemini-3.1-flash-tts"
-                  className="w-full bg-[#121212] border border-white/5 p-2.5 text-white focus:outline-none focus:border-[#c5a059]/40 font-mono"
+                  className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
                 />
-                <span className="text-[10px] text-gray-500 mt-1 block">配置调用的 Gemini TTS 模型标识。</span>
+                <span className="text-[10px] text-text-muted mt-1 block">配置调用的 Gemini TTS 模型标识。</span>
               </div>
 
-              {/* API Type Selector */}
-              <div>
-                <label className="text-gray-400 block mb-1.5 uppercase tracking-wider font-mono">API Provider / 服务提供方</label>
+              {/* Gemini Official Channel Settings */}
+              <div className="border-t border-border-color pt-3">
+                <h3 className="text-[10px] font-bold text-text-accent uppercase tracking-wider mb-2 font-mono">1. Gemini 官方渠道配置</h3>
+                <div>
+                  <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">GEMINI_API_KEY</label>
+                  <input
+                    type="password"
+                    placeholder="输入官方 Gemini API 秘钥..."
+                    className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
+                    value={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                  />
+                  <span className="text-[10px] text-text-muted mt-1 block">若空，则默认使用环境变量中的 GEMINI_API_KEY</span>
+                </div>
+              </div>
+
+              {/* NewAPI Channel Settings */}
+              <div className="border-t border-border-color pt-3">
+                <h3 className="text-[10px] font-bold text-text-accent uppercase tracking-wider mb-2 font-mono">2. NewAPI 中转渠道配置</h3>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">NewAPI Base URL</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. http://192.168.100.170:3000/v1"
+                      className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
+                      value={newApiBaseUrl}
+                      onChange={(e) => setNewApiBaseUrl(e.target.value)}
+                    />
+                    <span className="text-[10px] text-text-muted mt-1 block">本地中转站的 OpenAI 格式基础 URL。</span>
+                  </div>
+                  <div>
+                    <label className="text-text-secondary block mb-1 font-mono uppercase tracking-wider">NewAPI Token / 访问令牌</label>
+                    <input
+                      type="password"
+                      placeholder="输入 NewAPI 访问令牌/秘钥..."
+                      className="w-full bg-bg-input border border-border-color p-2.5 text-text-primary focus:outline-none focus:border-text-accent/40 font-mono"
+                      value={newApiKey}
+                      onChange={(e) => setNewApiKey(e.target.value)}
+                    />
+                    <span className="text-[10px] text-text-muted mt-1 block">中转站分配的用户 API 令牌。</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Channel Selector */}
+              <div className="border-t border-border-color pt-3">
+                <label className="text-text-secondary block mb-1.5 uppercase tracking-wider font-mono font-bold">3. 当前启用渠道 / Active Provider</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setApiType("official")}
-                    className={`py-2 px-3 border transition-all text-center cursor-pointer ${
+                    className={`py-2 px-3 border transition-all text-center cursor-pointer text-xs ${
                       apiType === "official"
-                        ? "border-[#c5a059] bg-[#c5a059]/10 text-white font-medium"
-                        : "border-white/5 bg-[#121212] text-gray-400 hover:text-white"
+                        ? "border-text-accent bg-text-accent/10 text-text-primary font-medium"
+                        : "border-border-color bg-bg-input text-text-secondary hover:text-text-primary"
                     }`}
                   >
-                    Gemini 官方模型
+                    Gemini 官方渠道
                   </button>
                   <button
                     onClick={() => setApiType("new_api")}
-                    className={`py-2 px-3 border transition-all text-center cursor-pointer ${
+                    className={`py-2 px-3 border transition-all text-center cursor-pointer text-xs ${
                       apiType === "new_api"
-                        ? "border-[#c5a059] bg-[#c5a059]/10 text-white font-medium"
-                        : "border-white/5 bg-[#121212] text-gray-400 hover:text-white"
+                        ? "border-text-accent bg-text-accent/10 text-text-primary font-medium"
+                        : "border-border-color bg-bg-input text-text-secondary hover:text-text-primary"
                     }`}
                   >
                     NewAPI 本地中转
                   </button>
                 </div>
+                <span className="text-[10px] text-text-muted mt-1.5 block">请指定系统当前调用语音引擎时默认走哪个渠道服务。</span>
               </div>
-
-              {apiType === "official" ? (
-                /* Official API key */
-                <div>
-                  <label className="text-gray-400 block mb-1 font-mono uppercase tracking-wider">GEMINI_API_KEY</label>
-                  <input
-                    type="password"
-                    placeholder="输入官方 Gemini API 秘钥..."
-                    className="w-full bg-[#121212] border border-white/5 p-2.5 text-white focus:outline-none focus:border-[#c5a059]/40 font-mono"
-                    value={geminiApiKey}
-                    onChange={(e) => setGeminiApiKey(e.target.value)}
-                  />
-                  <span className="text-[10px] text-gray-500 mt-1 block">若空，则默认使用环境变量中的 GEMINI_API_KEY</span>
-                </div>
-              ) : (
-                /* NewAPI options */
-                <div className="flex flex-col gap-3">
-                  <div>
-                    <label className="text-gray-400 block mb-1 font-mono uppercase tracking-wider">NewAPI Base URL</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. http://192.168.100.170:3000/v1"
-                      className="w-full bg-[#121212] border border-white/5 p-2.5 text-white focus:outline-none focus:border-[#c5a059]/40 font-mono"
-                      value={newApiBaseUrl}
-                      onChange={(e) => setNewApiBaseUrl(e.target.value)}
-                    />
-                    <span className="text-[10px] text-gray-500 mt-1 block">本地中转站的 OpenAI 格式基础 URL。</span>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 block mb-1 font-mono uppercase tracking-wider">NewAPI Token / 访问令牌</label>
-                    <input
-                      type="password"
-                      placeholder="输入 NewAPI 访问令牌/秘钥..."
-                      className="w-full bg-[#121212] border border-white/5 p-2.5 text-white focus:outline-none focus:border-[#c5a059]/40 font-mono"
-                      value={newApiKey}
-                      onChange={(e) => setNewApiKey(e.target.value)}
-                    />
-                    <span className="text-[10px] text-gray-500 mt-1 block">中转站分配的用户 API 令牌。</span>
-                  </div>
-                </div>
-              )}
             </div>
 
-            <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-4">
+            <div className="mt-6 flex justify-end gap-3 border-t border-border-color pt-4">
               <button
                 onClick={() => setShowSettingsModal(false)}
-                className="px-4 py-2 border border-[#c5a059]/20 hover:border-[#c5a059]/60 hover:bg-[#c5a059]/5 text-[#c5a059] transition-colors cursor-pointer text-xs"
+                className="px-4 py-2 border border-text-accent/20 hover:border-text-accent/60 hover:bg-text-accent/5 text-text-accent transition-colors cursor-pointer text-xs"
               >
                 取消
               </button>
