@@ -1,6 +1,25 @@
 # ATBard (Gemini High-Fidelity TTS Engine)
 
-ATBard 是一个基于 Google Gemini 3.1 Flash TTS 技术构建的高保真文学朗诵与有声书配音平台。它集成了创新的指令工程（Prompt Engineering）、长文本智能切片连读渲染、高颜双色自适应主题、本地播放可视化以及精细化的会话历史管理器。
+ATBard 是一个基于 `Google Gemini 3.1 Flash TTS` 技术构建的高保真文学朗诵与有声书配音平台。它集成了创新的指令工程（Prompt Engineering）、长文本智能切片连读渲染、高颜双色自适应主题、本地播放可视化以及精细化的会话历史管理器。
+
+
+# Docker一键部署
+
+启动容器（映射宿主机 3000 端口，并挂载数据卷保持数据持久化）：
+
+   ```bash
+   mkdir data
+
+   docker run -d \
+     -p 3000:3000 \
+     -e GEMINI_API_KEY="您的_GEMINI_API_KEY" \
+     -v $(pwd)/data:/app/var \
+     --name atbard-app \
+     aitobox/atbard:latest
+   ```
+
+启动成功后，即可直接在浏览器中访问 [http://localhost:3000](http://localhost:3000)。
+
 
 # Demo
 
@@ -170,11 +189,7 @@ python manage.py runserver 0.0.0.0:3000
    docker run -d \
      -p 3000:3000 \
      -e GEMINI_API_KEY="您的_GEMINI_API_KEY" \
-     -v $
-
-https://github.com/user-attachments/assets/c4a32a5a-79d5-4948-83c6-2f5bfbf38031
-
-(pwd)/data:/app/var \
+     -v $(pwd)/data:/app/var \
      --name atbard-app \
      atbard:latest
    ```
